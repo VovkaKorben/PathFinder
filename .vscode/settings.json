@@ -6,5 +6,11 @@
         "C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\source\\rtl\\win",
         "C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\source\\vcl"
     ],
-    "omnipascal.delphiInstallationPath": "C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0"
+    "omnipascal.delphiInstallationPath": "C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0",
+    "pascal.formatter.engine": "embarcadero",
+    "pascal.formatter.embarcadero.exe": "C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\bin\\Formatter.exe",
+    "pascal.formatter.embarcadero.config": "C:\\Users\\vovak\\AppData\\Roaming\\Embarcadero\\BDS\\16.0\\Formatter.config",
+    "pascal.formatter.embarcadero.encoding": "utf-8",
+    "editor.formatOnSave": false
+
 }

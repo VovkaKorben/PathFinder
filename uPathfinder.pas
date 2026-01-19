@@ -3,82 +3,60 @@ unit uPathfinder;
 interface
 
 uses
-    Windows, System.SysUtils, System.Classes, System.Generics.Collections, System.Math, System.Diagnostics, astar;
+  Windows, System.SysUtils, System.Classes, System.Generics.Collections, System.Math, System.Diagnostics, astar;
 
 const
 
-    MAX_DLG_BUFFER = 16384;
-    // Импорты SQLite
-
-
-    // const    stIdle = 0;    stWaiting = 1;    stReady = 2;
+  MAX_DLG_BUFFER = 16384;
 
 type
 
-    TSegmentAction = (saStop, saMoving, saParsing);
-    TBufferState = (bsIdle, bsWaiting, bsReady);
+  TSegmentAction = (saStop, saMoving, saParsing);
+  TBufferState = (bsIdle, bsWaiting, bsReady);
 
-    TResultNode = record
-        act, data0, data1, data2: int32;
+  
 
-        procedure AssignFromPoint(const p: TPoint3D);
-        procedure AssignAction(const npc_id, a0, a1: int32);
-        procedure CopyTo(var aa, ax, ay, az: int32);
-    end;
+  PPathContext = ^TPathContext; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
-    PPathContext = ^TPathContext; // Указатель для удобства работы
+  TPathContext = record
+  private
+    OID: int32;
 
-    TPathContext = record
-    private
-        OID: int32;
-        gScore: TDoubleArray; // Стоимость пути от старта
-        fScore: TDoubleArray; // Полная оценочная стоимость
-        CameFrom: TIntArray; // Карта переходов
+    FRecv1, FRecv2, FRecv3: int32;
+    FWaitState: TBufferState; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: 0 - пїЅпїЅпїЅпїЅ, 31 - пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
-        LinkIndexesCount: int32;
-        LinkIndexes: TIntArray;
+    FSteps: TSteps; // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    FLastResponse, FOutputBuffer: array [0 .. MAX_DLG_BUFFER] of AnsiChar;
 
-        OpenSetCount: int32;
-        OpenSet, OpenSetIndex: array of int32;
-        FRecv1, FRecv2, FRecv3: int32;
-        FWaitState: TBufferState; // Состояние: 0 - норм, 31 - ждём строку
+    FCurrentStep: int32;
+    procedure SetOutputText(const AText: string);
 
-        FFinalPath: array of TResultNode; // Массив точек найденного маршрута
-        FLastResponse, FOutputBuffer: array [0 .. MAX_DLG_BUFFER] of AnsiChar;
+    procedure Init;
+    procedure Reset;
 
-        FCurrentStep: int32;
-        procedure SetOutputText(const AText: string);
-        procedure ReconstructPath(node_id: int32);
-        procedure Init;
-        procedure Reset;
+  public
+    PointCount, ActionCount: int32;
+    Distance, TotalCost: Double;
 
-    public
-        PointCount, ActionCount: int32; // Количество узлов в результате
-        Distance, TotalCost: Double;
+    function GetNode(const Index: int32; var act, X, Y, Z: int32): boolean;
 
-        function GetNode(const Index: int32; var act, X, Y, Z: int32): boolean;
-        function DoAStar(start_point, end_point: TPoint3D): int32;
-
-        procedure GetText(AText: PAnsiChar);
-        function SendStringAddr: PAnsiChar;
-        procedure RecvInt(X, Y, Z: Integer);
-        function GetAction(var act, X, Y, Z: Integer): boolean;
-    end;
+    procedure GetText(AText: PAnsiChar);
+    function SendStringAddr: PAnsiChar;
+    procedure RecvInt(X, Y, Z: Integer);
+    function GetAction(var act, X, Y, Z: Integer): boolean;
+  end;
 
 var
 
-    Contexts: array of PPathContext;
-
-    graph_points: array of TPoint3D;
-    graph_points_count: int32;
+  Contexts: array of PPathContext;
 
 function GetContext(AOID: int32): PPathContext;
 function FindNearestPoint(const p: TPoint3D): int32;
 procedure Release(AOID: int32);
-procedure InitPathfinder(db_path: PAnsiChar); // Переносим заголовок сюда
+procedure InitPathfinder(db_path: PAnsiChar); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 
 var
-    FullDbPath: string; // Переносим переменную пути в интерфейс
+  FullDbPath: string; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
 implementation
 
@@ -87,284 +65,244 @@ implementation
   function TPathContext.GenerateNextSegment: boolean;
   begin
   Result := True;
-  SetLength(FFinalPath, 0); // Чистим старый набор действий перед загрузкой нового
+  SetLength(FFinalPath, 0); // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
   case FQuestGoal of
 
-  // --- СЦЕНАРИЙ 1: Регистрация в 7 Печатях ---
+  // --- пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 1: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ 7 пїЅпїЅпїЅпїЅпїЅпїЅпїЅ ---
   qg7SignsReg:
   case FSegmentState of
 
-  saIdle: // ШАГ 1: Нужно дойти до NPC
+  saIdle: // пїЅпїЅпїЅ 1: пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ NPC
   begin
-  AddSegment_Move(TargetNPC_Pos); // Загружаем кубик "Путь"
-  FSegmentState := saMoving; // Следующий раз зайдем уже в стадию движения
+  AddSegment_Move(TargetNPC_Pos); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅ"
+  FSegmentState := saMoving; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   end;
 
-  saMoving: // ШАГ 2: Пришли, надо поговорить
+  saMoving: // пїЅпїЅпїЅ 2: пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   begin
-  AddSegment_Talk(TargetNPC_ID); // Загружаем кубик "Разговор"
+  AddSegment_Talk(TargetNPC_ID); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ"
   FSegmentState := saTalking;
-  FWaitState := stWaiting; // DLL замирает, ждёт HTML от скрипта
+  FWaitState := stWaiting; // DLL пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ HTML пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   end;
 
-  saParsing: // ШАГ 3: Анализируем то, что прислал скрипт
+  saParsing: // пїЅпїЅпїЅ 3: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
   begin
   if AnalyzeHTML('Already Registered') then
-  AddSegment_Message('Master, you are already in!') // Кубик "Сообщение"
+  AddSegment_Message('Master, you are already in!') // пїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ"
   else
-  AddSegment_Click(Bypass_Reg); // Кубик "Клик по кнопке"
+  AddSegment_Click(Bypass_Reg); // пїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ"
 
   FSegmentState := saFinished;
   end;
   end;
 
-  // --- СЦЕНАРИЙ 2: Другой квест (например, чистка инвентаря) ---
+  // --- пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 2: пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ) ---
   qgWarehouse:
-  // Тут будет такая же структура, но со своими "кубиками"
-  // Например: AddSegment_Move(Warehouse_Pos) -> AddSegment_Talk -> saParsing (сдать вещи)
+  // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ"
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: AddSegment_Move(Warehouse_Pos) -> AddSegment_Talk -> saParsing (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ)
   end;
 
-  FCurrentStep := 0; // Начинаем выполнять свежезагруженный сегмент с начала
+  FCurrentStep := 0; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
   end;
 }
 
 procedure Release(AOID: int32);
 var
-    i, j: int32;
+  i, j: int32;
 begin
-    for i := 0 to High(Contexts) do
+  for i := 0 to High(Contexts) do
+  begin
+    if Contexts[i]^.OID = AOID then
     begin
-        if Contexts[i]^.OID = AOID then
-        begin
-            SetLength(Contexts[i]^.gScore, 0);
-            SetLength(Contexts[i]^.fScore, 0);
-            SetLength(Contexts[i]^.CameFrom, 0);
-            SetLength(Contexts[i]^.OpenSet, 0);
-            SetLength(Contexts[i]^.OpenSetIndex, 0);
-            SetLength(Contexts[i]^.FFinalPath, 0);
-            FreeMem(Contexts[i]);
-            for j := i to High(Contexts) - 1 do
-                Contexts[j] := Contexts[j + 1];
+      SetLength(Contexts[i]^.gScore, 0);
+      SetLength(Contexts[i]^.fScore, 0);
+      SetLength(Contexts[i]^.CameFrom, 0);
+      SetLength(Contexts[i]^.OpenSet, 0);
+      SetLength(Contexts[i]^.OpenSetIndex, 0);
+      SetLength(Contexts[i]^.FFinalPath, 0);
+      FreeMem(Contexts[i]);
+      for j := i to High(Contexts) - 1 do
+        Contexts[j] := Contexts[j + 1];
 
-            SetLength(Contexts, Length(Contexts) - 1);
-            Exit;
-        end;
+      SetLength(Contexts, Length(Contexts) - 1);
+      Exit;
     end;
+  end;
 end;
 
-function FindNearestPoint(const p: TPoint3D): int32;
-var
-    MinDist, CurDist: Double;
-    j: int32;
-begin
-    Result := -1;
-    MinDist := 1E30;
-    for j := 0 to graph_points_count - 1 do
-    begin
-        if graph_points[j].ID = -1 then
-            Continue;
-
-        CurDist := p.DistanceTo(graph_points[j]);
-        if CurDist < MinDist then
-        begin
-            MinDist := CurDist;
-            Result := j;
-        end;
-    end;
-end;
-
-// Внутренняя функция: найти контекст или создать новый
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 function GetContext(AOID: int32): PPathContext;
 var
-    i: int32;
+  i: int32;
 begin
-    Result := nil;
+  Result := nil;
 
-    // 1. Ищем, нет ли уже такого ID в списке
-    for i := 0 to High(Contexts) do
-        if Contexts[i]^.OID = AOID then
-        begin
-            Result := Contexts[i];
-            Exit;
-        end;
+  // 1. пїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ ID пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+  for i := 0 to High(Contexts) do
+    if Contexts[i]^.OID = AOID then
+    begin
+      Result := Contexts[i];
+      Exit;
+    end;
 
-    // 2. Если не нашли — создаем новый блок памяти
-    GetMem(Result, SizeOf(TPathContext));
-    FillChar(Result^, SizeOf(TPathContext), 0); // Обнуляем всё
+  // 2. пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+  GetMem(Result, SizeOf(TPathContext));
+  FillChar(Result^, SizeOf(TPathContext), 0); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ
 
-    Result^.OID := AOID;
-    Result^.Init;
+  Result^.OID := AOID;
+  Result^.Init;
 
-    // Добавляем указатель в наш общий список
-    SetLength(Contexts, Length(Contexts) + 1);
-    Contexts[High(Contexts)] := Result;
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+  SetLength(Contexts, Length(Contexts) + 1);
+  Contexts[High(Contexts)] := Result;
 end;
 
 { TPathContext }
 procedure TPathContext.SetOutputText(const AText: string);
 begin
-    StrPLCopy(FOutputBuffer, AnsiString(AText), MAX_DLG_BUFFER - 1);
+  StrPLCopy(FOutputBuffer, AnsiString(AText), MAX_DLG_BUFFER - 1);
 end;
 
 function TPathContext.GetAction(var act, X, Y, Z: Integer): boolean;
 begin
-    Result := True; // В тесте всегда возвращаем True, чтобы цикл в скрипте не падал
+  Result := True;
 
-    { 1. Контролёр ожидания: если ждём данных, скрипт "спит" }
-    if FWaitState = bsWaiting then
-    begin
-        act := 80; // Команда Delay
-        X := 100;
-        Exit;
-    end;
+  if FWaitState = bsWaiting then
+  begin
+    act := 80; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ Delay
+    X := 100;
+    Exit;
+  end;
 
-    { 2. Если данные пришли (stReady), сбрасываем флаг и идём дальше }
-    if FWaitState = bsReady then
-        FWaitState := bsIdle;
+  { 2. пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (stReady), пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ }
+  if FWaitState = bsReady then
+    FWaitState := bsIdle;
 
-    { 3. ТЕСТОВАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ (без всяких FFinalPath) }
-    case FCurrentStep of
-        0:
-            begin // Тест печати
-                act := 5;
-                SetOutputText('DLL: Link test started...'); // Кладём строку в FOutputBuffer
-            end;
+  { 3. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ FFinalPath) }
+  case FCurrentStep of
+    0:
+      begin // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+        act := 5;
+        SetOutputText('DLL: Link test started...'); // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ FOutputBuffer
+      end;
 
-        1:
-            begin // Тест приёма строки (C -> S)
-                act := 31; // Просим скрипт прислать DlgText
-                FWaitState := bsWaiting;
-            end;
+    1:
+      begin // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (C -> S)
+        act := 31; // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ DlgText
+        FWaitState := bsWaiting;
+      end;
 
-        2:
-            begin // Тест возврата строки (S -> C)
-                act := 5;
-                { Берём то, что скрипт прислал на шаге 1, и отдаём обратно для Print }
-                // SetOutputText('DLL получено: ' + string(FLastResponse));
-                // SetOutputText('DLL получено: ' + UTF8ToString(PAnsiChar(@FLastResponse[0])));
-                // SetOutputText('DLL received HTML. Length: ' + IntToStr(Length(string(FLastResponse))));
-                SetOutputText('DLL received HTML. Length: ' + inttostr(Length(string(FLastResponse))));
+    2:
+      begin // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (S -> C)
+        act := 5;
+        { пїЅпїЅпїЅпїЅ пїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ 1, пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ Print }
+        // SetOutputText('DLL пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: ' + string(FLastResponse));
+        // SetOutputText('DLL пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: ' + UTF8ToString(PAnsiChar(@FLastResponse[0])));
+        // SetOutputText('DLL received HTML. Length: ' + IntToStr(Length(string(FLastResponse))));
+        SetOutputText('DLL received HTML. Length: ' + inttostr(Length(string(FLastResponse))));
 
-            end;
+      end;
 
-        3:
-            begin // Тест чисел (C -> S)
-                act := 40; // Допустим, 40 - это наша тестовая команда на числа
-                FWaitState := bsWaiting;
-            end;
+    3:
+      begin // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (C -> S)
+        act := 40; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, 40 - пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+        FWaitState := bsWaiting;
+      end;
 
-        4:
-            begin // Тест вывода полученных чисел
-                act := 5;
+    4:
+      begin // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+        act := 5;
 
-                SetOutputText('Numbers from script: ' + inttostr(FRecv1) + ', ' + inttostr(FRecv2));
-            end;
+        SetOutputText('Numbers from script: ' + inttostr(FRecv1) + ', ' + inttostr(FRecv2));
+      end;
 
-        5:
-            begin // Завершение
-                act := 0; // Stop
+    5:
+      begin // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        act := 0; // Stop
 
-                FCurrentStep := 0;
-                Result := False;
-            end;
-    else
-        act := 0;
         FCurrentStep := 0;
         Result := False;
-    end;
-    if Result then
-        inc(FCurrentStep);
+      end;
+  else
+    act := 0;
+    FCurrentStep := 0;
+    Result := False;
+  end;
+  if Result then
+    inc(FCurrentStep);
 end;
 
 function TPathContext.GetNode(const Index: int32; var act, X, Y, Z: int32): boolean;
 begin
-    Result := (Index >= 0) and (Index < (PointCount + ActionCount));
-    if Result then
-        FFinalPath[index].CopyTo(act, X, Y, Z);
+  Result := (Index >= 0) and (Index < (PointCount + ActionCount));
+  if Result then
+    FFinalPath[index].CopyTo(act, X, Y, Z);
 end;
 
 procedure TPathContext.GetText(AText: PAnsiChar);
 begin
-    if (AText <> nil) then
-        StrLCopy(FLastResponse, AText, MAX_DLG_BUFFER - 1)
-    else
-        FLastResponse[0] := #0; // Если пришел nil, просто обнуляем буфер
+  if (AText <> nil) then
+    StrLCopy(FLastResponse, AText, MAX_DLG_BUFFER - 1)
+  else
+    FLastResponse[0] := #0; // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ nil, пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 
-    FWaitState := bsReady;
+  FWaitState := bsReady;
 end;
 
 procedure TPathContext.Init;
 
 begin
-    SetLength(gScore, graph_points_count);
-    SetLength(fScore, graph_points_count);
-    SetLength(CameFrom, graph_points_count);
+  SetLength(gScore, graph_points_count);
+  SetLength(fScore, graph_points_count);
+  SetLength(CameFrom, graph_points_count);
 
-    SetLength(OpenSet, graph_points_count);
+  SetLength(OpenSet, graph_points_count);
 
-    SetLength(OpenSetIndex, graph_points_count);
+  SetLength(OpenSetIndex, graph_points_count);
 
 end;
 
-procedure TPathContext.Reset;
-var
-    i: int32;
-begin
-    SetLength(FFinalPath, 0);
-    OpenSetCount := 0;
 
-    PointCount := 0;
-    ActionCount := 0;
-    Distance := 0;
-    TotalCost := 0;
-    for i := 0 to Length(graph_points) - 1 do
-    begin
-        gScore[i] := 1E30; // Бесконечность
-        fScore[i] := 1E30;
-        CameFrom[i] := -1; // Предков пока нет
-        OpenSetIndex[i] := -1;
-    end;
-end;
 
 function TPathContext.SendStringAddr: PAnsiChar;
 begin
-    Result := @(FOutputBuffer[0]);
+  Result := @(FOutputBuffer[0]);
 end;
 
 procedure TPathContext.RecvInt(X, Y, Z: Integer);
 begin
 
-    FRecv1 := X;
-    FRecv2 := Y;
-    FRecv3 := Z;
-    FWaitState := bsReady;
+  FRecv1 := X;
+  FRecv2 := Y;
+  FRecv3 := Z;
+  FWaitState := bsReady;
 end;
 
 { TResultNode }
 
 procedure TResultNode.AssignAction(const npc_id, a0, a1: int32);
 begin
-    act := 1;
-    data0 := npc_id;
-    data1 := a0;
-    data2 := a1;
+  act := 1;
+  data0 := npc_id;
+  data1 := a0;
+  data2 := a1;
 end;
 
 procedure TResultNode.AssignFromPoint(const p: TPoint3D);
 begin
-    act := 0;
-    data0 := p.X;
-    data1 := p.Y;
-    data2 := p.Z;
+  act := 0;
+  data0 := p.X;
+  data1 := p.Y;
+  data2 := p.Z;
 end;
 
 procedure TResultNode.CopyTo(var aa, ax, ay, az: int32);
 begin
-    aa := act;
-    ax := data0;
-    ay := data1;
-    az := data2;
+  aa := act;
+  ax := data0;
+  ay := data1;
+  az := data2;
 end;
 
 end.

@@ -3,13 +3,15 @@
     "tasks": [
         {
             "label": "Build PathFinder DLL",
-            "type": "shell",
+            "type": "process",
             "command": "C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\bin\\dcc32.exe",
             "args": [
-                "-B", 
+                "-B",
                 "-Q",
-                "-U\"E:\\share\\pf_v3;C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\lib\\Win32\\debug\"",
-                "-E\"E:\\share\\pf_v3\"", 
+
+                "-UE:\\share\\pf_v3;C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\lib\\Win32\\release;C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\lib\\Win32\\debug",
+                "-NSWinapi;System;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde",
+                "-EE:\\share\\pf_v3",
                 "PathFinder.dpr"
             ],
             "group": {
@@ -17,6 +19,17 @@
                 "isDefault": true
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Custom Delphi Format",
+            "type": "process",
+            "command": "C:\\Program Files (x86)\\Embarcadero\\Studio\\16.0\\bin\\Formatter.exe",
+            "args": [
+                "-config",
+                "C:\\Users\\vovak\\AppData\\Roaming\\Embarcadero\\BDS\\16.0\\Formatter.config",
+                "${file}"
+            ],
+            "problemMatcher": [ ]
         }
     ]
 }

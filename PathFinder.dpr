@@ -1,13 +1,9 @@
-library PathFinder;
+п»їlibrary PathFinder;
 
-uses
-  System.SysUtils,
-  System.Classes,
-  Vcl.Controls,
-  uPathfinder in 'uPathfinder.pas',
-  uWaypointForm in 'uWaypointForm.pas',
+uses System.SysUtils,
+
+  System.Classes, Vcl.Controls, uPathfinder in 'uPathfinder.pas', uWaypointForm in 'uWaypointForm.pas',
   astar in 'astar.pas';
-
 {$R *.res}
 
 {
@@ -25,7 +21,7 @@ uses
   begin
   Ctx := GetContext(OID);
   Result := Ctx^.GetNode(Index, Act, X, Y, Z);
-  end;     // Теперь параметров шесть, как и в вызове
+  end;     // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
   function ShowWaypointDialog(OID: Integer; SX, SY, SZ: Integer; var DestX, DestY, DestZ: Integer): Boolean; stdcall;
   var
   Frm: TWaypointForm;
@@ -47,53 +43,50 @@ uses
 }
 procedure FreeActions(OID: Integer); stdcall;
 begin
-    Release(OID);
+  Release(OID);
 end;
 
 procedure StrToDLL(OID: Integer; AText: PAnsiChar); stdcall;
 var
-    Ctx: PPathContext;
+  Ctx: PPathContext;
 begin
-    Ctx := GetContext(OID); // Ищем контекст персонажа в памяти
-    if Ctx <> nil then
-        Ctx^.GetText(AText);
+  Ctx := GetContext(OID); // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+  if Ctx <> nil then
+    Ctx^.GetText(AText);
 end;
 
 function StrFromDLL(OID: Integer): PAnsiChar; stdcall;
 var
-    Ctx: PPathContext;
+  Ctx: PPathContext;
 begin
-    Result := nil;
-    Ctx := GetContext(OID);
-    if (Ctx <> nil) then
-        Result := Ctx^.SendStringAddr;
+  Result := nil;
+  Ctx := GetContext(OID);
+  if (Ctx <> nil) then
+    Result := Ctx^.SendStringAddr;
 end;
 
 procedure IntToDLL(OID: Integer; V1, V2, v3: Integer); stdcall;
 var
-    Ctx: PPathContext;
+  Ctx: PPathContext;
 begin
-    Ctx := GetContext(OID);
-    if (Ctx <> nil) then
-        Ctx^.RecvInt(V1, V2, v3);
+  Ctx := GetContext(OID);
+  if (Ctx <> nil) then
+    Ctx^.RecvInt(V1, V2, v3);
 end;
 
 { PathFinder.dpr }
 
 function IntFromDLL(OID: Integer; var Act, X, Y, Z: Integer): boolean; stdcall;
 var
-    Ctx: PPathContext;
+  Ctx: PPathContext;
 begin
-    Result := false;
-    Ctx := GetContext(OID);
-    if (Ctx <> nil) then
-        Result := Ctx^.GetAction(Act, X, Y, Z);
+  Result := false;
+  Ctx := GetContext(OID);
+  if (Ctx <> nil) then
+    Result := Ctx^.GetAction(Act, X, Y, Z);
 
 end;
 
-exports
-    StrToDLL, StrFromDLL, IntToDLL, IntFromDLL, FreeActions;
-
-begin
+exports StrToDLL, StrFromDLL, IntToDLL, IntFromDLL, FreeActions;
 
 end.
