@@ -1,0 +1,10 @@
+step
+step
+step
+.....
+npc sel
+npc dlg
+dlg sel1 
+dlg sel2
+.....
+step
