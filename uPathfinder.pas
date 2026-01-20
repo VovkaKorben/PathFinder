@@ -1,9 +1,9 @@
-unit uPathfinder;
+﻿unit uPathfinder;
 
 interface
 
 uses
-  Windows, System.SysUtils, System.Classes, System.Generics.Collections, System.Math, System.Diagnostics, astar;
+  Windows, System.SysUtils, System.Classes, System.Generics.Collections, System.Math, System.Diagnostics, astar, AnsiStrings;
 
 const
 
@@ -13,8 +13,6 @@ type
 
   TSegmentAction = (saStop, saMoving, saParsing);
   TBufferState = (bsIdle, bsWaiting, bsReady);
-
-  
 
   PPathContext = ^TPathContext; // ��������� ��� �������� ������
 
@@ -31,8 +29,7 @@ type
     FCurrentStep: int32;
     procedure SetOutputText(const AText: string);
 
-    procedure Init;
-    procedure Reset;
+    // procedure Init;    procedure Reset;
 
   public
     PointCount, ActionCount: int32;
@@ -51,12 +48,9 @@ var
   Contexts: array of PPathContext;
 
 function GetContext(AOID: int32): PPathContext;
-function FindNearestPoint(const p: TPoint3D): int32;
+// function FindNearestPoint(const p: TPoint3D): int32;
 procedure Release(AOID: int32);
-procedure InitPathfinder(db_path: PAnsiChar); // ��������� ��������� ����
-
-var
-  FullDbPath: string; // ��������� ���������� ���� � ���������
+// procedure InitPathfinder(db_path: PAnsiChar); // ��������� ��������� ����
 
 implementation
 
@@ -115,12 +109,8 @@ begin
   begin
     if Contexts[i]^.OID = AOID then
     begin
-      SetLength(Contexts[i]^.gScore, 0);
-      SetLength(Contexts[i]^.fScore, 0);
-      SetLength(Contexts[i]^.CameFrom, 0);
-      SetLength(Contexts[i]^.OpenSet, 0);
-      SetLength(Contexts[i]^.OpenSetIndex, 0);
-      SetLength(Contexts[i]^.FFinalPath, 0);
+
+      SetLength(Contexts[i]^.FSteps, 0);
       FreeMem(Contexts[i]);
       for j := i to High(Contexts) - 1 do
         Contexts[j] := Contexts[j + 1];
@@ -136,7 +126,7 @@ function GetContext(AOID: int32): PPathContext;
 var
   i: int32;
 begin
-  Result := nil;
+  // Result := nil;
 
   // 1. ����, ��� �� ��� ������ ID � ������
   for i := 0 to High(Contexts) do
@@ -151,7 +141,7 @@ begin
   FillChar(Result^, SizeOf(TPathContext), 0); // �������� ��
 
   Result^.OID := AOID;
-  Result^.Init;
+  // Result^.Init;
 
   // ��������� ��������� � ��� ����� ������
   SetLength(Contexts, Length(Contexts) + 1);
@@ -161,7 +151,7 @@ end;
 { TPathContext }
 procedure TPathContext.SetOutputText(const AText: string);
 begin
-  StrPLCopy(FOutputBuffer, AnsiString(AText), MAX_DLG_BUFFER - 1);
+  AnsiStrings.StrPLCopy(FOutputBuffer, AnsiString(AText), MAX_DLG_BUFFER - 1);
 end;
 
 function TPathContext.GetAction(var act, X, Y, Z: Integer): boolean;
@@ -235,24 +225,25 @@ end;
 
 function TPathContext.GetNode(const Index: int32; var act, X, Y, Z: int32): boolean;
 begin
-  Result := (Index >= 0) and (Index < (PointCount + ActionCount));
-  if Result then
+  { Result := (Index >= 0) and (Index < (PointCount + ActionCount));
+    if Result then
     FFinalPath[index].CopyTo(act, X, Y, Z);
+  }
 end;
 
 procedure TPathContext.GetText(AText: PAnsiChar);
 begin
   if (AText <> nil) then
-    StrLCopy(FLastResponse, AText, MAX_DLG_BUFFER - 1)
+    AnsiStrings.StrLCopy(FLastResponse, AText, MAX_DLG_BUFFER - 1)
   else
     FLastResponse[0] := #0; // ���� ������ nil, ������ �������� �����
 
   FWaitState := bsReady;
 end;
+{
+  procedure TPathContext.Init;
 
-procedure TPathContext.Init;
-
-begin
+  begin
   SetLength(gScore, graph_points_count);
   SetLength(fScore, graph_points_count);
   SetLength(CameFrom, graph_points_count);
@@ -261,9 +252,7 @@ begin
 
   SetLength(OpenSetIndex, graph_points_count);
 
-end;
-
-
+  end; }
 
 function TPathContext.SendStringAddr: PAnsiChar;
 begin
@@ -280,29 +269,29 @@ begin
 end;
 
 { TResultNode }
-
-procedure TResultNode.AssignAction(const npc_id, a0, a1: int32);
-begin
+{
+  procedure TResultNode.AssignAction(const npc_id, a0, a1: int32);
+  begin
   act := 1;
   data0 := npc_id;
   data1 := a0;
   data2 := a1;
-end;
+  end;
 
-procedure TResultNode.AssignFromPoint(const p: TPoint3D);
-begin
+  procedure TResultNode.AssignFromPoint(const p: TPoint3D);
+  begin
   act := 0;
   data0 := p.X;
   data1 := p.Y;
   data2 := p.Z;
-end;
+  end;
 
-procedure TResultNode.CopyTo(var aa, ax, ay, az: int32);
-begin
+  procedure TResultNode.CopyTo(var aa, ax, ay, az: int32);
+  begin
   aa := act;
   ax := data0;
   ay := data1;
   az := data2;
-end;
+  end; }
 
 end.

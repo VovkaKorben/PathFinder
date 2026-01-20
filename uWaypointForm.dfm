@@ -46,7 +46,7 @@ object WaypointForm: TWaypointForm
       OnSelectItem = lvWaypointsSelectItem
     end
   end
-  object GroupBox2: TGroupBox
+  object frameContainer: TGroupBox
     Left = 414
     Top = 8
     Width = 233
@@ -55,28 +55,13 @@ object WaypointForm: TWaypointForm
     Caption = 'Information'
     TabOrder = 1
     object Memo1: TMemo
-      Left = 12
-      Top = 20
-      Width = 209
-      Height = 169
-      BorderStyle = bsNone
-      Color = clBtnHighlight
+      Left = 108
+      Top = 228
+      Width = 185
+      Height = 89
       Lines.Strings = (
         'Memo1')
-      ReadOnly = True
       TabOrder = 0
-    end
-    object Memo2: TMemo
-      Left = 13
-      Top = 200
-      Width = 209
-      Height = 189
-      BorderStyle = bsNone
-      Color = clBtnHighlight
-      Lines.Strings = (
-        'Memo1')
-      ReadOnly = True
-      TabOrder = 1
     end
   end
   object btCancel: TButton

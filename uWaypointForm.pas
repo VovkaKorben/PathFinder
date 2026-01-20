@@ -6,18 +6,19 @@ uses
     Winapi.Windows, System.SysUtils, System.Classes, Vcl.Graphics,
     Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.StdCtrls,
     System.Generics.Collections, uPathfinder, System.IniFiles, System.Generics.Defaults,
-    Vcl.Buttons;
+    Vcl.Buttons, astar, frame7Signs,
+    frameClanBank, framePathInfo,
+    Vcl.Themes, Vcl.Styles;
 
 type
     TWaypointForm = class(TForm)
         GroupBox1: TGroupBox;
         lvWaypoints: TListView;
-        GroupBox2: TGroupBox;
-        Memo1: TMemo;
+        frameContainer: TGroupBox;
         btCancel: TButton;
         btOk: TButton;
-        Memo2: TMemo;
         BitBtn1: TBitBtn;
+    Memo1: TMemo;
         procedure FormCreate(Sender: TObject);
         procedure lvWaypointsDblClick(Sender: TObject);
         procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -27,21 +28,54 @@ type
         procedure BitBtn1Click(Sender: TObject);
         procedure RefreshList;
         procedure FormClose(Sender: TObject; var Action: TCloseAction);
+        procedure FillPoints;
+        procedure CreateFrames;
     public
 
         pctx: PPathContext;
-        character_pos, selected_point: TPoint3D;
+        StartPos, selected_point: TPoint3D;
+    end;
+
+    TPredefinedAction = (paMove, pa7Signs, paClanBank);
+    TBaseFrameClass = class of TFrame;
+
+    TActionDef = record
+        Action: TPredefinedAction;
+        Caption: string;
+        FrameClass: TBaseFrameClass;
+        Instance: TFrame; // Ссылка на живой объект
     end;
 
 var
     WaypointForm: TWaypointForm;
+    // Наш реестр «умных» действий
+    ActionDefs: array [0 .. 2] of TActionDef = ( //
+        (
+            Action: paMove; Caption: 'paMove'; FrameClass: TfrPathInfo), //
+      (Action: pa7Signs; Caption: 'pa7Signs'; FrameClass: tfr7Signs), //
+      (Action: paClanBank; Caption: 'paClanBank'; FrameClass: TfrClanBank));
 
 implementation
 
 {$R *.dfm}
 
-// 1. В FormCreate оставляем ТОЛЬКО заполнение списка
-procedure TWaypointForm.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure ApplyCarbonStyle;
+begin
+    try
+        if TStyleManager.ActiveStyle.Name <> 'Carbon' then
+        begin
+            if not TStyleManager.TrySetStyle('Carbon') then
+            begin
+                // Если не вышло, можно оставить стандартный или выдать лог
+            end;
+        end;
+    except
+    end;
+end;
+
+procedure TWaypointForm.FormClose(Sender: TObject;
+
+  var Action: TCloseAction);
 var
     Ini: TIniFile;
 begin
@@ -56,37 +90,54 @@ begin
     end;
 end;
 
-procedure TWaypointForm.FormCreate(Sender: TObject);
+procedure TWaypointForm.FillPoints;
+
 var
     SortedPoints: TList<TPoint3D>;
     P: TPoint3D;
     Item: TListItem;
     CurrentChar, FirstChar: Char;
     j: int32;
+    c: uint32;
 begin
+
     SortedPoints := TList<TPoint3D>.Create;
     try
         for j := 0 to graph_points_count - 1 do
         begin
             if graph_points[j].ID = -1 then
                 Continue;
-            if graph_points[j].name <> '' then
+            if graph_points[j].Name <> '' then
                 SortedPoints.Add(graph_points[j]);
         end;
 
         SortedPoints.Sort(TComparer<TPoint3D>.Construct(
             function(const L, R: TPoint3D): Integer
             begin
-                Result := CompareText(L.name, R.name);
+                Result := CompareText(L.Name, R.Name);
             end));
 
         lvWaypoints.Items.BeginUpdate;
         try
             lvWaypoints.Items.Clear;
+
+            // add predefined actions (7 signs etc)
+            Item := lvWaypoints.Items.Add;
+            Item.Caption := 'predefined actions';
+            Item.Data := nil;
+
+            for c := Low(ActionDefs) + 1 to High(ActionDefs) do
+            begin
+                Item := lvWaypoints.Items.Add;
+                Item.Caption := ActionDefs[c].Caption;
+                Item.Data := Pointer(c or $80000000);
+            end;
+
+            // add standard points
             CurrentChar := #0;
             for P in SortedPoints do
             begin
-                FirstChar := UpCase(P.name[1]);
+                FirstChar := UpCase(P.Name[1]);
                 if FirstChar <> CurrentChar then
                 begin
                     CurrentChar := FirstChar;
@@ -95,7 +146,7 @@ begin
                     Item.Data := nil;
                 end;
                 Item := lvWaypoints.Items.Add;
-                Item.Caption := P.name;
+                Item.Caption := P.Name;
                 Item.Data := Pointer(P.ID);
             end;
         finally
@@ -104,6 +155,14 @@ begin
     finally
         SortedPoints.Free;
     end;
+end;
+
+procedure TWaypointForm.FormCreate(Sender: TObject);
+
+begin
+    ApplyCarbonStyle;
+    FillPoints;
+    CreateFrames;
 end;
 
 // 2. Новая процедура FormShow - здесь магия восстановления
@@ -130,40 +189,33 @@ begin
         Ini.Free;
     end;
     // 1. Ищем ближайшую точку к текущему положению
-    NearestID := FindNearestPoint(character_pos);
+    NearestID := FindNearestPoint(StartPos);
 
-    Memo2.Lines.BeginUpdate;
-    try
-        Memo2.Lines.Clear;
-        if NearestID <> -1 then
-        begin
-            P := graph_points[NearestID];
-            Dist := P.DistanceTo(character_pos);
+    { Memo2.Lines.BeginUpdate;
+      try
+      Memo2.Lines.Clear;
+      if NearestID <> -1 then
+      begin
+      P := graph_points[NearestID];
+      Dist := P.DistanceTo(StartPos);
 
-            Memo2.Lines.Add(Format('Nearest point ID: %d', [NearestID]));
-            Memo2.Lines.Add(Format('Distance: %.0f', [Dist]));
-            Memo2.Lines.Add(Format('Pos: %d, %d, %d', [P.X, P.Y, P.Z]));
+      Memo2.Lines.Add(Format('Nearest point ID: %d', [NearestID]));
+      Memo2.Lines.Add(Format('Distance: %.0f', [Dist]));
+      Memo2.Lines.Add(Format('Pos: %d, %d, %d', [P.X, P.Y, P.Z]));
 
-            link_count := length(graph_points[NearestID].Links);
-            Memo2.Lines.Add(Format('Links count: %d', [link_count]));
-            for i := 0 to link_count - 1 do
-                Memo2.Lines.Add(Format('%d -> Link %d, Point %d, Dist: %f', [i, graph_points[NearestID].Links[i].ID, graph_points[NearestID].Links[i].TargetID, graph_points[NearestID].Links[i].Distance]));
-        end
-        else
-            Memo2.Lines.Add('No points near');
+      link_count := length(graph_points[NearestID].Links);
+      Memo2.Lines.Add(Format('Links count: %d', [link_count]));
+      for i := 0 to link_count - 1 do
+      Memo2.Lines.Add(Format('%d -> Link %d, Point %d, Dist: %f', [i, graph_points[NearestID].Links[i].ID, graph_points[NearestID].Links[i].TargetID, graph_points[NearestID].Links[i].Distance]));
+      end
+      else
+      Memo2.Lines.Add('No points near');
 
-        // Memo2.Lines.Add('-------------------');
-        // Memo2.Lines.Add(''); // Отступ перед инфой о маршруте
-    finally
-        Memo2.Lines.EndUpdate;
-    end;
-
-    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
-    try
-        LastTarget := Ini.ReadString('Settings', 'LastTarget', '');
-    finally
-        Ini.Free;
-    end;
+      // Memo2.Lines.Add('-------------------');
+      // Memo2.Lines.Add(''); // Отступ перед инфой о маршруте
+      finally
+      Memo2.Lines.EndUpdate;
+      end; }
 
     if LastTarget <> '' then
     begin
@@ -182,13 +234,22 @@ begin
     end;
 end;
 
-procedure TWaypointForm.lvWaypointsAdvancedCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage; var DefaultDraw: Boolean);
+procedure TWaypointForm.lvWaypointsAdvancedCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage;
+
+var DefaultDraw: Boolean);
 begin
     if Item.Data = nil then
     begin
+        Sender.Canvas.Brush.Color := StyleServices.GetStyleColor(scListView);
+        Sender.Canvas.FillRect(Item.DisplayRect(drBounds));
         // Это заголовок алфавита
-        Sender.Canvas.Font.Color := clBlue;
+        Sender.Canvas.Font.Color := $00BBFF;
         Sender.Canvas.Font.Style := [fsBold];
+        Sender.Canvas.Font.Size := 11;
+        Sender.Canvas.TextOut(Item.DisplayRect(drBounds).Left + 2, Item.DisplayRect(drBounds).Top - 2, Item.Caption);
+
+        // Говорим системе, что мы сами всё нарисовали
+        DefaultDraw := False;
     end else begin
         // Это обычная точка
         Sender.Canvas.Font.Color := clWindowText;
@@ -203,13 +264,8 @@ end;
 
 procedure TWaypointForm.BitBtn1Click(Sender: TObject);
 begin
-
-    InitPathfinder(PAnsiChar(AnsiString(FullDbPath)));
-
-    // 2. Обновляем визуальный список в форме
+    InitPathfinder(FullDbPath);
     RefreshList;
-
-    // ShowMessage('Граф успешно перечитан из базы!');
 end;
 
 procedure TWaypointForm.btOkClick(Sender: TObject);
@@ -229,6 +285,24 @@ begin
         PointID := Integer(lvWaypoints.Selected.Data);
         selected_point := graph_points[PointID];
         ModalResult := mrOk;
+    end;
+
+end;
+
+procedure TWaypointForm.CreateFrames;
+var
+    i: Integer;
+begin
+    for i := Low(ActionDefs) to High(ActionDefs) do
+    begin
+        // Создаем экземпляр фрейма по его классу
+        ActionDefs[i].Instance := ActionDefs[i].FrameClass.Create(Self);
+        with ActionDefs[i].Instance do
+        begin
+            Parent := frameContainer; // Сажаем на панель [cite: 3]
+            Align := alClient;
+            Visible := False; // Скрываем до поры до времени
+        end;
     end;
 
 end;
@@ -295,66 +369,105 @@ var
     TargetID, StartID: Integer;
     // TotalDist,
     DistToStart: Double;
-    i: Integer;
-
+    global_action_index, i: Integer;
+    steps: TSteps;
+    pi: TPathInfo;
+    c: uint32;
 begin
-    Memo1.Lines.BeginUpdate;
-    try
-        Memo1.Lines.Clear;
-        if (not Selected) or (Item = nil) then
-            Exit;
-        if (Item.Data = nil) then
-            Exit;
+    if (not Selected) then
+        Exit;
 
-        // 1. Вытягиваем ID целевой точки
-        TargetID := Integer(Item.Data);
+    // hide all frames
+    for i := Low(ActionDefs) to High(ActionDefs) do
+        if Assigned(ActionDefs[i].Instance) then
+            ActionDefs[i].Instance.Visible := False;
 
-        // 2. Считаем расстояние от текущего положения до входа в граф
-        StartID := FindNearestPoint(character_pos);
-        if StartID <> -1 then
-            DistToStart := character_pos.DistanceTo(graph_points[StartID])
-        else
+    if (Item = nil) then
+        Exit;
+    if (Item.Data = nil) then
+        Exit;
+
+    c := uint32(Item.Data);
+    if (c and $80000000) = 0 then
+        global_action_index := 0
+    else
+        global_action_index := c and $7FFFFFFF;
+    ActionDefs[global_action_index].Instance.Visible := True;
+
+    if global_action_index = 0 then
+//        with TfrPathInfo(ActionDefs[0].Instance).Memo1.Lines do
+        with Memo1.Lines do
         begin
-            Memo1.Lines.Add('[lvWaypointsSelectItem] StartID = -1');
-            Exit;
+            // path info
+            BeginUpdate;
+            try
+                StartID := FindNearestPoint(StartPos);
+                TargetID := Integer(Item.Data);
+                if StartID <> -1 then
+                    DistToStart := StartPos.DistanceTo(graph_points[StartID])
+                else
+                begin
+                    Add('[lvWaypointsSelectItem] StartID = -1');
+                    Exit;
+                end;
+
+                setlength(steps, 0);
+                pi := DoAStar(steps, graph_points[StartID], graph_points[TargetID]);
+
+                Add('Текст для Барина');
+
+            finally
+                EndUpdate;
+            end;
         end;
+    {
+      // 1. Вытягиваем ID целевой точки
+      TargetID := Integer(Item.Data);
 
-        // 3. Строим путь
-        pctx^.DoAStar(graph_points[StartID], graph_points[TargetID]);
+      // 2. Считаем расстояние от текущего положения до входа в граф
+      StartID := FindNearestPoint(StartPos);
+      if StartID <> -1 then
+      DistToStart := StartPos.DistanceTo(graph_points[StartID])
+      else
+      begin
+      Memo1.Lines.Add('[lvWaypointsSelectItem] StartID = -1');
+      Exit;
+      end;
 
-        // Вывод информации
-        Memo1.Lines.Add('=== ROUTE INFO ===');
-        Memo1.Lines.Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
-        Memo1.Lines.Add('-------------------');
-        Memo1.Lines.Add(Format('Physical Distance: %.0f units', [pctx^.Distance]));
-        Memo1.Lines.Add(Format('Total Path Cost:   %.0f (inc. weights)', [pctx^.TotalCost]));
-        Memo1.Lines.Add('-------------------');
-        Memo1.Lines.Add(Format('Nodes in Path: %d', [pctx^.PointCount]));
-        Memo1.Lines.Add(Format('Actions found: %d', [pctx^.ActionCount]));
-        Memo1.Lines.Add(Format('Entry distance: %.0f units', [DistToStart]));
+      // 3. Строим путь
+      setlength(steps, 0);
+      pi := DoAStar(steps, graph_points[StartID], graph_points[TargetID]);
 
-        // TotalDist := 0;
+      // Вывод информации
+      Memo1.Lines.Add('=== ROUTE INFO ===');
+      Memo1.Lines.Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
+      Memo1.Lines.Add('-------------------');
+      Memo1.Lines.Add(Format('Physical Distance: %.0f units', [pi.Distance]));
+      Memo1.Lines.Add(Format('Total Path Cost:   %.0f (inc. weights)', [pi.TotalCost]));
+      Memo1.Lines.Add('-------------------');
+      Memo1.Lines.Add(Format('Nodes in Path: %d', [pi.PointCount]));
+      Memo1.Lines.Add(Format('Actions found: %d', [pi.ActionCount]));
+      Memo1.Lines.Add(Format('Entry distance: %.0f units', [DistToStart]));
 
-        // 4. Вывод в Ваш Memo1
+      // TotalDist := 0;
 
-        { Memo1.Lines.Add(Format('S %d E %d', [StartID, TargetID]));
+      // 4. Вывод в Ваш Memo1
 
-          Memo1.Lines.Add(Format('Total Path: %.0f units', [pctx^.Distance]));
-          Memo1.Lines.Add(Format('Nodes: %d (Actions: %d)', [pctx^.PointCount, pctx^.ActionCount]));
-          Memo1.Lines.Add(Format('Entry dist: %.0f units', [DistToStart]));
-        }
-        if DistToStart > 1000 then
-            Memo1.Lines.Add('!!! WARNING: Too far from entry point !!!');
+      { Memo1.Lines.Add(Format('S %d E %d', [StartID, TargetID]));
 
-    finally
-        Memo1.Lines.EndUpdate;
-    end;
+      Memo1.Lines.Add(Format('Total Path: %.0f units', [pctx^.Distance]));
+      Memo1.Lines.Add(Format('Nodes: %d (Actions: %d)', [pctx^.PointCount, pctx^.ActionCount]));
+      Memo1.Lines.Add(Format('Entry dist: %.0f units', [DistToStart]));
+
+      if DistToStart > 1000 then
+      Memo1.Lines.Add('!!! WARNING: Too far from entry point !!!');
+    }
 
 end;
 
 procedure TWaypointForm.RefreshList;
 begin
-    FormCreate(nil);
+    FillPoints;
 end;
 
 end.
