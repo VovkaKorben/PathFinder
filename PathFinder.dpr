@@ -8,10 +8,7 @@ uses
   Vcl.Controls,
   uPathfinder in 'uPathfinder.pas',
   uWaypointForm in 'uWaypointForm.pas',
-  astar in 'astar.pas',
-  frame7Signs in 'frame7Signs.pas' {fr7Signs: TFrame},
-  framePathInfo in 'framePathInfo.pas' {frPathInfo: TFrame},
-  frameClanBank in 'frameClanBank.pas' {frClanBank: TFrame};
+  astar in 'astar.pas';
 
 {$R *.res}
 

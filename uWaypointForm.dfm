@@ -54,14 +54,60 @@ object WaypointForm: TWaypointForm
     Anchors = [akTop, akRight, akBottom]
     Caption = 'Information'
     TabOrder = 1
-    object Memo1: TMemo
-      Left = 108
-      Top = 228
+    object panMove: TPanel
+      Left = -19
+      Top = 48
+      Width = 241
+      Height = 229
+      TabOrder = 1
+      DesignSize = (
+        241
+        229)
+      object Memo1: TMemo
+        Left = 8
+        Top = 8
+        Width = 225
+        Height = 213
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Lines.Strings = (
+          'Memo1')
+        TabOrder = 0
+      end
+    end
+    object panClanbank: TPanel
+      Tag = 2
+      Left = 64
+      Top = 156
+      Width = 110
+      Height = 141
+      BevelOuter = bvNone
+      Caption = 'panClanbank'
+      TabOrder = 2
+    end
+    object pan7Signs: TPanel
+      Tag = 1
+      Left = 28
+      Top = 295
       Width = 185
-      Height = 89
-      Lines.Strings = (
-        'Memo1')
+      Height = 141
+      Caption = 'pan7Signs'
       TabOrder = 0
+      object CheckBox1: TCheckBox
+        Left = 8
+        Top = 8
+        Width = 97
+        Height = 17
+        Caption = 'CheckBox1'
+        TabOrder = 0
+      end
+      object CheckBox2: TCheckBox
+        Left = 8
+        Top = 23
+        Width = 97
+        Height = 17
+        Caption = 'CheckBox2'
+        TabOrder = 1
+      end
     end
   end
   object btCancel: TButton
