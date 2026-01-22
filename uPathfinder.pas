@@ -3,7 +3,7 @@
 interface
 
 uses
-    Windows, System.SysUtils, System.Classes, System.Generics.Collections, System.Math, System.Diagnostics, astar, AnsiStrings;
+    Windows, System.SysUtils, System.Classes, System.Generics.Collections, System.Math, System.Diagnostics, astar, AnsiStrings, vcl.forms;
 
 const
     MAX_DLG_BUFFER = 16384;
@@ -23,18 +23,18 @@ type
         FWaitState: TBufferState;
         FLastResponse, FOutputBuffer: array [0 .. MAX_DLG_BUFFER] of AnsiChar;
 
-FSegments :array of TSegmentAction; // заполняется при выборе в окне действия
+        FSegments: array of TSegmentAction; // заполняется при выборе в окне действия
         FCurrentSegment: int32; // текущий индекс сегмента
         FSteps: TSteps; // шаги из текущего сегмента, то самое, что длл отдает адрику один за одним
         FCurrentStep: int32; // индекс шажочка в FSteps
 
         {
-        выбрали точку на форме - заполнили FSegments всем скриптом
-       
+          выбрали точку на форме - заполнили FSegments всем скриптом
 
 
-        
-        
+
+
+
         }
 
         procedure SetOutputText(const AText: string);
@@ -42,6 +42,8 @@ FSegments :array of TSegmentAction; // заполняется при выбор�
     public
         PointCount, ActionCount: int32;
         Distance, TotalCost: Double;
+
+        procedure GenerateScenario(frm: TForm; PointData: uint32);
 
         procedure GetText(AText: PAnsiChar);
         function SendStringAddr: PAnsiChar;
@@ -100,6 +102,21 @@ end;
 procedure TPathContext.SetOutputText(const AText: string);
 begin
     AnsiStrings.StrPLCopy(FOutputBuffer, AnsiString(AText), MAX_DLG_BUFFER - 1);
+end;
+
+procedure TPathContext.GenerateScenario(frm: TForm; PointData: uint32);
+// TPredefinedAction = (paMove, pa7Signs, paClanBank);
+var
+    scenario_index: int32;
+begin
+    PointData := uint32(PointData);
+    if (PointData and $80000000) = 0 then
+    begin // simple moveto
+
+    end else begin
+        scenario_index := PointData and $7FFFFFFF;
+
+    end;
 end;
 
 function TPathContext.GetAction(var act, X, Y, Z: Integer): boolean;

@@ -67,6 +67,7 @@ procedure Log(const Msg: string; const OID: int32 = 0);
 function DoAStar(var steps: TSteps; start_point, end_point: TPoint3D): TPathInfo;
 function FindNearestPoint(const p: TPoint3D): int32;
 procedure InitPathfinder(db_path: string);
+function FloatEqual(a, b: Double): boolean;
 
 implementation
 
@@ -75,12 +76,17 @@ var
     gScore, fScore: TDoubleArray;
     OpenSet, OpenSetIndex, CameFrom: TIntArray;
 
+function FloatEqual(a, b: Double): boolean;
+begin
+    result := abs(a - b) < 0.0001;
+end;
+
 function FindNearestPoint(const p: TPoint3D): int32;
 var
     MinDist, CurDist: Double;
     j: int32;
 begin
-    Result := -1;
+    result := -1;
     MinDist := 1E30;
     for j := 0 to graph_points_count - 1 do
     begin
@@ -91,7 +97,7 @@ begin
         if CurDist < MinDist then
         begin
             MinDist := CurDist;
-            Result := j;
+            result := j;
         end;
     end;
 end;
@@ -121,7 +127,7 @@ end;
 
 function TPoint3D.DistanceTo(const Other: TPoint3D): Double;
 begin
-    Result := Sqrt(Sqr(Int64(Other.X) - X) + Sqr(Int64(Other.Y) - Y) + Sqr(Int64(Other.Z) - Z));
+    result := Sqrt(Sqr(Int64(Other.X) - X) + Sqr(Int64(Other.Y) - Y) + Sqr(Int64(Other.Z) - Z));
 end;
 
 procedure TPoint3D.CopyTo(var tx, ty, tz: int32);
@@ -140,15 +146,15 @@ end;
 
 function TPoint3D.DistanceTo(const TargetX, TargetY, TargetZ: int32): Double;
 begin
-    Result := Sqrt(Sqr(Int64(TargetX) - X) + Sqr(Int64(TargetY) - Y) + Sqr(Int64(TargetZ) - Z));
+    result := Sqrt(Sqr(Int64(TargetX) - X) + Sqr(Int64(TargetY) - Y) + Sqr(Int64(TargetZ) - Z));
 end;
 
 function TPoint3D.ToString(const simple: boolean): string;
 begin
     if simple then
-        Result := Format('%d, %d', [X, Y])
+        result := Format('%d, %d', [X, Y])
     else
-        Result := Format('%d, %d, %d', [X, Y, Z]);
+        result := Format('%d, %d, %d', [X, Y, Z]);
 
 end;
 
@@ -166,7 +172,7 @@ var
     var
         i: int32;
     begin
-        with Result do
+        with result do
         begin
             PointCount := 0;
             ActionCount := 0;
@@ -198,11 +204,11 @@ var
         var
             j: int32;
         begin
-            Result := -1;
+            result := -1;
             for j := 0 to Length(graph_points[start_point_id].Links) - 1 do
                 if graph_points[start_point_id].Links[j].TargetID = end_point_id then
                 begin
-                    Result := j;
+                    result := j;
                     break;
                 end;
         end;
@@ -219,16 +225,16 @@ var
         begin
             if CameFrom[temp_id] = -1 then
                 break;
-            inc(Result.PointCount);
+            inc(result.PointCount);
             link_index := GetLinkIndex(CameFrom[temp_id], temp_id);
-            inc(Result.RawActionCount, Length(graph_points[CameFrom[temp_id]].Links[link_index].ActionData));
+            inc(result.RawActionCount, Length(graph_points[CameFrom[temp_id]].Links[link_index].ActionData));
             temp_id := CameFrom[temp_id];
         end;
-        inc(Result.PointCount);
+        inc(result.PointCount);
 
         // setup final calculation --------------------------------------------------------------------
         // sum pt+actions and setup final array len
-        insert_pos := Result.PointCount + Result.RawActionCount;
+        insert_pos := result.PointCount + result.RawActionCount;
         SetLength(steps, Length(steps) + insert_pos);
 
         dec(insert_pos); // set pointer to last element
@@ -253,8 +259,8 @@ var
 
             link_index := GetLinkIndex(CameFrom[temp_id], temp_id);
 
-            Result.Distance := Result.Distance + graph_points[CameFrom[temp_id]].Links[link_index].Distance;
-            Result.TotalCost := Result.TotalCost + graph_points[CameFrom[temp_id]].Links[link_index].Distance + graph_points[CameFrom[temp_id]].Links[link_index].Weight;
+            result.Distance := result.Distance + graph_points[CameFrom[temp_id]].Links[link_index].Distance;
+            result.TotalCost := result.TotalCost + graph_points[CameFrom[temp_id]].Links[link_index].Distance + graph_points[CameFrom[temp_id]].Links[link_index].Weight;
 
             // expand microcode to real steps
             ActData := graph_points[CameFrom[temp_id]].Links[link_index].ActionData;
@@ -320,7 +326,7 @@ var
         for j := 1 to OpenSetCount - 1 do
             if fScore[OpenSet[j]] < fScore[OpenSet[idx]] then
                 idx := j;
-        Result := OpenSet[idx];
+        result := OpenSet[idx];
     end;
 
 begin
@@ -388,8 +394,8 @@ var
 
     function check_DB_error(err_code: int32): boolean;
     begin
-        Result := err_code = 0;
-        if not Result then
+        result := err_code = 0;
+        if not result then
             Log('������ PREPARE (��� ' + inttostr(err_code) + '): ' + UTF8ToString(sqlite3_errmsg(db)));
     end;
 

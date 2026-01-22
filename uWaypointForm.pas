@@ -37,7 +37,7 @@ type
     public
 
         pctx: PPathContext;
-        StartPos, selected_point: TPoint3D;
+        StartPoint: TPoint3D;
     end;
 
     TPredefinedAction = (paMove, pa7Signs, paClanBank);
@@ -67,7 +67,7 @@ begin
     end;
 end;
 
-procedure TWaypointForm.FormClose(Sender: TObject;  var Action: TCloseAction);
+procedure TWaypointForm.FormClose(Sender: TObject; var Action: TCloseAction);
 var
     Ini: TIniFile;
 begin
@@ -197,8 +197,7 @@ begin
         Ini.Free;
     end;
     // 1. Ищем ближайшую точку к текущему положению
-    NearestID := FindNearestPoint(StartPos);
-
+    NearestID := FindNearestPoint(StartPoint);
 
     if LastTarget <> '' then
     begin
@@ -217,7 +216,7 @@ begin
     end;
 end;
 
-procedure TWaypointForm.lvWaypointsAdvancedCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage;var DefaultDraw: Boolean);
+procedure TWaypointForm.lvWaypointsAdvancedCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage; var DefaultDraw: Boolean);
 begin
     if Item.Data = nil then
     begin
@@ -251,38 +250,37 @@ end;
 
 procedure TWaypointForm.btOkClick(Sender: TObject);
 var
-  scenario_index,PointData,  PointID: int32;
+    scenario_index, PointData, PointID: int32;
     Ini: TIniFile;
 
 begin
     if lvWaypoints.Selected = nil then
         Exit;
-        if lvWaypoints.Selected.Data = nil then
+    if lvWaypoints.Selected.Data = nil then
         Exit;
 
-         PointData := uint32(lvWaypoints.Selected.Data);
+    PointData := uint32(lvWaypoints.Selected.Data);
 
-        // Сохраняем сценарий для выбранной точки в INI
-        Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
-        try
-            Ini.WriteInteger('Settings', 'LastTarget', PointData);
-        finally
-            Ini.Free;
-        end;
+    // Сохраняем сценарий для выбранной точки в INI
+    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+    try
+        Ini.WriteInteger('Settings', 'LastTarget', PointData);
+    finally
+        Ini.Free;
+    end;
 
+    { if (PointData and $80000000) = 0 then
+      scenario_index := 0
+      else
+      scenario_index := PointData and $7FFFFFFF;
 
-{        if (PointData and $80000000) = 0 then
-        scenario_index := 0
-    else
-        scenario_index := PointData and $7FFFFFFF;
-
-        PointID := Integer(lvWaypoints.Selected.Data);
-        selected_point := graph_points[PointID];
- }
-        // генерируем сценарий
-                           pctx.GenerateScenario(self,scenario_index,PointData);
-        ModalResult := mrOk;
-
+      PointID := Integer(lvWaypoints.Selected.Data);
+      selected_point := graph_points[PointID];
+    }
+    // генерируем сценарий
+    // form itself - to read parameters,
+    pctx.GenerateScenario(Self, PointData);
+    ModalResult := mrOk;
 
 end;
 
@@ -291,7 +289,7 @@ var
     TargetID, StartID: Integer;
     // TotalDist,
     DistToStart: Double;
-  PointData,  scenario_index, i: Integer;
+    PointData, scenario_index, i: Integer;
     steps: TSteps;
     pi: TPathInfo;
 
@@ -303,7 +301,7 @@ begin
     if (Item.Data = nil) then
         Exit;
 
-   PointData := uint32(Item.Data);
+    PointData := uint32(Item.Data);
     if (PointData and $80000000) = 0 then
         scenario_index := 0
     else
@@ -320,10 +318,10 @@ begin
             BeginUpdate;
             try
                 Clear;
-                StartID := FindNearestPoint(StartPos);
+                StartID := FindNearestPoint(StartPoint);
                 TargetID := Integer(Item.Data);
                 if StartID <> -1 then
-                    DistToStart := StartPos.DistanceTo(graph_points[StartID])
+                    DistToStart := StartPoint.DistanceTo(graph_points[StartID])
                 else
                 begin
                     Add('[lvWaypointsSelectItem] StartID = -1');
@@ -337,7 +335,8 @@ begin
                 Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
                 Add('-------------------');
                 Add(Format('Physical Distance: %.0f units', [pi.Distance]));
-                Add(Format('Total Path Cost:   %.0f (inc. weights)', [pi.TotalCost]));
+                if not FloatEqual(pi.TotalCost, pi.Distance) then
+                    Add(Format('Total Path Cost:   %.0f (inc. weights)', [pi.TotalCost]));
                 Add('-------------------');
                 Add(Format('Nodes in Path: %d', [pi.PointCount]));
                 Add(Format('Actions found: %d', [pi.ActionCount]));
@@ -347,8 +346,6 @@ begin
                 EndUpdate;
             end;
         end;
-
-   
 
 end;
 

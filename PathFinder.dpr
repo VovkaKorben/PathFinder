@@ -3,12 +3,12 @@
 {$R *.dres}
 
 uses
-  System.SysUtils,
-  System.Classes,
-  Vcl.Controls,
-  uPathfinder in 'uPathfinder.pas',
-  uWaypointForm in 'uWaypointForm.pas',
-  astar in 'astar.pas';
+    System.SysUtils,
+    System.Classes,
+    Vcl.Controls,
+    uPathfinder in 'uPathfinder.pas',
+    uWaypointForm in 'uWaypointForm.pas',
+    astar in 'astar.pas';
 
 {$R *.res}
 
@@ -20,7 +20,7 @@ begin
     Frm := TWaypointForm.Create(nil);
     try
         Frm.pctx := GetContext(OID);
-        Frm.StartPos := tpoint3d.Create(SX, SY, SZ);
+        Frm.StartPoint := tpoint3d.Create(SX, SY, SZ);
         if Frm.ShowModal = mrOk then
         begin
             // Frm.selected_point.CopyTo(DestX, DestY, DestZ);
