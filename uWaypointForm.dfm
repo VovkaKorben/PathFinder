@@ -47,7 +47,7 @@ object WaypointForm: TWaypointForm
     end
   end
   object frameContainer: TGroupBox
-    Left = 414
+    Left = 418
     Top = 8
     Width = 233
     Height = 404
@@ -86,8 +86,8 @@ object WaypointForm: TWaypointForm
     end
     object pan7Signs: TPanel
       Tag = 1
-      Left = 28
-      Top = 295
+      Left = 80
+      Top = 275
       Width = 185
       Height = 141
       Caption = 'pan7Signs'
@@ -107,6 +107,23 @@ object WaypointForm: TWaypointForm
         Height = 17
         Caption = 'CheckBox2'
         TabOrder = 1
+      end
+    end
+    object Panel1: TPanel
+      Tag = 3
+      Left = 20
+      Top = 235
+      Width = 110
+      Height = 141
+      BevelOuter = bvNone
+      Caption = 'panClanbank'
+      TabOrder = 3
+      object Label1: TLabel
+        Left = 16
+        Top = 12
+        Width = 48
+        Height = 13
+        Caption = 'test mode'
       end
     end
   end

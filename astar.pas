@@ -160,12 +160,7 @@ end;
 
 function DoAStar(var steps: TSteps; start_point, end_point: TPoint3D): TPathInfo;
 var
-
-
-    // LinkIndexesCount: int32;  LinkIndexes: TIntArray;
-
     OpenSetCount: int32;
-
     start_point_id, end_point_id, Current, NeighborID, j: int32;
     TentativeG: Double;
     procedure reset_astar;
@@ -181,13 +176,6 @@ var
             TotalCost := 0.0;
         end;
 
-        { SetLength(Contexts[i]^.gScore, 0);
-          SetLength(Contexts[i]^.fScore, 0);
-          SetLength(Contexts[i]^.CameFrom, 0);
-          SetLength(Contexts[i]^.OpenSet, 0);
-          SetLength(Contexts[i]^.OpenSetIndex, 0);
-        }
-        // SetLength(FFinalPath, 0);
         OpenSetCount := 0;
 
         for i := 0 to Length(graph_points) - 1 do
@@ -214,7 +202,7 @@ var
         end;
 
     var
-        j, link_index, temp_id, insert_pos, mc_len: int32;
+        j, link_index, temp_id, insert_pos, mc_len, act_cnt: int32;
         ActData: TMicrocodeList;
 
     begin
@@ -227,7 +215,12 @@ var
                 break;
             inc(result.PointCount);
             link_index := GetLinkIndex(CameFrom[temp_id], temp_id);
-            inc(result.RawActionCount, Length(graph_points[CameFrom[temp_id]].Links[link_index].ActionData));
+            act_cnt := Length(graph_points[CameFrom[temp_id]].Links[link_index].ActionData);
+            if act_cnt > 0 then
+            begin
+                inc(result.ActionCount);
+                inc(result.RawActionCount, act_cnt);
+            end;
             temp_id := CameFrom[temp_id];
         end;
         inc(result.PointCount);
@@ -236,8 +229,7 @@ var
         // sum pt+actions and setup final array len
         insert_pos := result.PointCount + result.RawActionCount;
         SetLength(steps, Length(steps) + insert_pos);
-
-        dec(insert_pos); // set pointer to last element
+          insert_pos:=    Length(steps)-1;// set pointer to last element
         temp_id := node_id;
 
         // fill path with steps --------------------------------------------------------------------
@@ -277,7 +269,7 @@ var
                                 steps[insert_pos].data1 := graph_points[ActData[j][1]].Y;
                                 steps[insert_pos].data2 := graph_points[ActData[j][1]].Z;
                             end;
-                        actNpcSel, actNpcDlg:
+                        actNpcSel, actNpcDlg, actDlgSel:
                             begin
                                 steps[insert_pos].data0 := ActData[j][1];
                             end;
@@ -417,10 +409,14 @@ var
             sl.StrictDelimiter := true;
             sl.DelimitedText := str;
 
-            l := 1;
+            // init microcode
+            l := 2;
             SetLength(mcode, l);
+            // start up
             mcode[0][0] := actNpcSel;
             mcode[0][1] := StrToIntDef(sl.Values['npc_id'], 0);
+            mcode[1][0] := actNpcDlg;
+
             actidx := 0;
             while true do
             begin
@@ -428,7 +424,7 @@ var
                 if (sl.IndexOfName(actname) = -1) then
                     break;
                 SetLength(mcode, l + 1);
-                mcode[l][0] := actNpcDlg;
+                mcode[l][0] := actDlgSel;
                 mcode[l][1] := StrToIntDef(sl.Values[actname], 0);
                 inc(actidx);
                 inc(l);
@@ -519,7 +515,7 @@ begin
                     // парсим ActionData из extra
                     // делаем для линка "микрокод" из экшенов
                     pText := sqlite3_column_text(stmt, 4);
-                    ExpandMicrocode(tmpLink.ActionData, UTF8ToString(pText), tmpLink.ID);
+                    ExpandMicrocode(tmpLink.ActionData, UTF8ToString(pText), start_point_id);
 
                     tmpLink.Weight := sqlite3_column_int(stmt, 5); // ������ ��� ������� �� ������� extra
 

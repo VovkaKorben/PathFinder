@@ -23,6 +23,8 @@ type
         Memo1: TMemo;
         CheckBox1: TCheckBox;
         CheckBox2: TCheckBox;
+        Panel1: TPanel;
+        Label1: TLabel;
         procedure FormCreate(Sender: TObject);
         procedure lvWaypointsDblClick(Sender: TObject);
         procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -33,11 +35,11 @@ type
         procedure RefreshList;
         procedure FormClose(Sender: TObject; var Action: TCloseAction);
         procedure FillPoints;
-        // procedure CreateFrames;
+        procedure ExtractParamsToContext();
     public
 
-        pctx: PPathContext;
-        StartPoint: TPoint3D;
+        ctx: TPathContext;
+
     end;
 
     TPredefinedAction = (paMove, pa7Signs, paClanBank);
@@ -47,11 +49,49 @@ var
 
     // Наш реестр «умных» действий
 const
-    ActionCaptions: array [0 .. 2] of string = ('paMove', 'pa7Signs', 'paClanBank');
+    ActionCaptions: array[0..3] of string = ('paMove', 'Seven Signs', 'paClanBank', 'Test');
 
 implementation
 
 {$R *.dfm}
+
+procedure TWaypointForm.ExtractParamsToContext();
+var
+    i, j: Integer;
+    PanelCtrl: TControl;
+    SubCtrl: TControl;
+begin
+    if ctx = nil then
+        Exit;
+
+    // Бежим по элементам frameContainer
+    for i := 0 to frameContainer.ControlCount - 1 do
+    begin
+        PanelCtrl := frameContainer.Controls[i];
+
+        // Нас интересуют только панели (panMove, pan7Signs и т.д.) [cite: 4, 6]
+        if PanelCtrl is TPanel then
+        begin
+            // Заходим внутрь панели
+            for j := 0 to TPanel(PanelCtrl).ControlCount - 1 do
+            begin
+                SubCtrl := TPanel(PanelCtrl).Controls[j];
+
+                // Игнорируем TMemo по твоему приказу
+                if SubCtrl is TMemo then
+                    Continue;
+
+                // Сохраняем состояние в зависимости от типа компонента
+                if SubCtrl is TCheckBox then
+                    ctx.Params.AddOrSetValue(SubCtrl.Name, TCheckBox(SubCtrl).Checked) //
+                else if SubCtrl is TComboBox then
+                    ctx.Params.AddOrSetValue(SubCtrl.Name, TComboBox(SubCtrl).ItemIndex)
+                else if SubCtrl is TEdit then
+                    ctx.Params.AddOrSetValue(SubCtrl.Name, TEdit(SubCtrl).Text);
+            end;
+        end;
+    end;
+end;
 
 procedure ApplyCarbonStyle;
 begin
@@ -115,7 +155,7 @@ begin
 
             // add predefined actions (7 signs etc)
             Item := lvWaypoints.Items.Add;
-            Item.Caption := 'predefined actions';
+            Item.Caption := '***';
             Item.Data := nil;
 
             for j := Low(ActionCaptions) + 1 to High(ActionCaptions) do
@@ -154,6 +194,7 @@ var
     i: int32;
     Pnl: TPanel;
 begin
+    Self.Icon.Handle := LoadIcon(HInstance, 'MAINICON');
     ApplyCarbonStyle;
     FillPoints;
 
@@ -174,15 +215,18 @@ begin
 end;
 
 // 2. Новая процедура FormShow - здесь магия восстановления
+
 procedure TWaypointForm.FormShow(Sender: TObject);
 var
     Ini: TIniFile;
-    LastTarget: string;
+    // LastTarget: string;
+    LastTargetID: uint32;
     Item: TListItem;
-    NearestID, i, link_count: Integer;
-    P: TPoint3D;
+    // NearestID,
+    i: Integer;
+    // P: TPoint3D;
 
-    Dist: Double;
+    // Dist: Double;
 begin
     Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
     try
@@ -191,20 +235,17 @@ begin
         Self.Top := Ini.ReadInteger('Window', 'Top', Self.Top);
         Self.Width := Ini.ReadInteger('Window', 'Width', Self.Width);
         Self.Height := Ini.ReadInteger('Window', 'Height', Self.Height);
-
-        LastTarget := Ini.ReadString('Settings', 'LastTarget', '');
+        LastTargetID := Cardinal(Ini.ReadInteger('Settings', 'LastTarget', 0));
     finally
         Ini.Free;
     end;
-    // 1. Ищем ближайшую точку к текущему положению
-    NearestID := FindNearestPoint(StartPoint);
 
-    if LastTarget <> '' then
+    if LastTargetID <> 0 then
     begin
         for i := 0 to lvWaypoints.Items.Count - 1 do
         begin
             Item := lvWaypoints.Items[i];
-            if (Item.Data <> nil) and SameText(Item.Caption, LastTarget) then
+            if (Item.Data <> nil) and (uint32(Item.Data) = LastTargetID) then
             begin
                 Item.Selected := True;
                 Item.Focused := True;
@@ -230,7 +271,9 @@ begin
 
         // Говорим системе, что мы сами всё нарисовали
         DefaultDraw := False;
-    end else begin
+    end
+    else
+    begin
         // Это обычная точка
         Sender.Canvas.Font.Color := clWindowText;
         Sender.Canvas.Font.Style := [];
@@ -250,7 +293,7 @@ end;
 
 procedure TWaypointForm.btOkClick(Sender: TObject);
 var
-    scenario_index, PointData, PointID: int32;
+    PointData: int32;
     Ini: TIniFile;
 
 begin
@@ -264,22 +307,16 @@ begin
     // Сохраняем сценарий для выбранной точки в INI
     Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
     try
-        Ini.WriteInteger('Settings', 'LastTarget', PointData);
+        Ini.WriteInteger('Settings', 'LastTarget', Integer(PointData));
     finally
         Ini.Free;
     end;
 
-    { if (PointData and $80000000) = 0 then
-      scenario_index := 0
-      else
-      scenario_index := PointData and $7FFFFFFF;
+    // get all params from form to dict
+    ExtractParamsToContext();
 
-      PointID := Integer(lvWaypoints.Selected.Data);
-      selected_point := graph_points[PointID];
-    }
-    // генерируем сценарий
-    // form itself - to read parameters,
-    pctx.GenerateScenario(Self, PointData);
+    // put scenario to segments
+    ctx.GenerateScenario(PointData);
     ModalResult := mrOk;
 
 end;
@@ -294,13 +331,14 @@ var
     pi: TPathInfo;
 
 begin
+    btOk.Enabled := False;
     if (not Selected) then
         Exit;
     if (Item = nil) then
         Exit;
     if (Item.Data = nil) then
         Exit;
-
+    btOk.Enabled := True;
     PointData := uint32(Item.Data);
     if (PointData and $80000000) = 0 then
         scenario_index := 0
@@ -311,41 +349,43 @@ begin
         if frameContainer.Controls[i] is TPanel then
             frameContainer.Controls[i].Visible := (frameContainer.Controls[i].Tag = scenario_index);
 
-    if scenario_index = 0 then
-        with Memo1.Lines do
-        begin
-            // path info
-            BeginUpdate;
-            try
-                Clear;
-                StartID := FindNearestPoint(StartPoint);
-                TargetID := Integer(Item.Data);
-                if StartID <> -1 then
-                    DistToStart := StartPoint.DistanceTo(graph_points[StartID])
-                else
-                begin
-                    Add('[lvWaypointsSelectItem] StartID = -1');
-                    Exit;
+    if False then // temporary disable
+        if scenario_index = 0 then
+            with Memo1.Lines do
+            begin
+                // path info
+                BeginUpdate;
+                try
+                    Clear;
+                    StartID := FindNearestPoint(ctx.StartPoint);
+                    TargetID := Integer(Item.Data);
+                    if StartID <> -1 then
+                        DistToStart := ctx.StartPoint.DistanceTo(graph_points[StartID])
+                    else
+                    begin
+                        Add('[lvWaypointsSelectItem] StartID = -1');
+                        Exit;
+                    end;
+
+                    setlength(steps, 0);
+                    pi := DoAStar(steps, graph_points[StartID], graph_points[TargetID]);
+
+                    Add('=== ROUTE INFO ===');
+                    Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
+                    Add('-------------------');
+                    Add(Format('Distance: %s units', [FormatFloat('###,##0', pi.Distance)]));
+                    if not FloatEqual(pi.TotalCost, pi.Distance) then
+                        Add(Format('Cost:   %.0f (inc. weights)', [pi.TotalCost]));
+                    Add('-------------------');
+                    Add(Format('Nodes: %d', [pi.PointCount]));
+                    if pi.ActionCount > 0 then
+                        Add(Format('Actions: %d', [pi.ActionCount]));
+                    Add(Format('Entry distance: %s units', [FormatFloat('###,##0', DistToStart)]));
+
+                finally
+                    EndUpdate;
                 end;
-
-                setlength(steps, 0);
-                pi := DoAStar(steps, graph_points[StartID], graph_points[TargetID]);
-
-                Add('=== ROUTE INFO ===');
-                Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
-                Add('-------------------');
-                Add(Format('Physical Distance: %.0f units', [pi.Distance]));
-                if not FloatEqual(pi.TotalCost, pi.Distance) then
-                    Add(Format('Total Path Cost:   %.0f (inc. weights)', [pi.TotalCost]));
-                Add('-------------------');
-                Add(Format('Nodes in Path: %d', [pi.PointCount]));
-                Add(Format('Actions found: %d', [pi.ActionCount]));
-                Add(Format('Entry distance: %.0f units', [DistToStart]));
-
-            finally
-                EndUpdate;
             end;
-        end;
 
 end;
 
@@ -355,3 +395,4 @@ begin
 end;
 
 end.
+

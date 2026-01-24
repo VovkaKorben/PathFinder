@@ -3,62 +3,70 @@
 interface
 
 uses
-    Windows, System.SysUtils, System.Classes, System.Generics.Collections, System.Math, System.Diagnostics, astar, AnsiStrings, vcl.forms;
+    Windows, System.SysUtils, System.Classes, System.Generics.Collections,
+    System.Math, System.Diagnostics, astar, AnsiStrings, vcl.forms,
+    uConstants;
 
 const
     MAX_DLG_BUFFER = 16384;
 
 type
-
-    TSegmentAction = (saStop, saMoving, saParsing);
+    TPredefinedAction = (paMove, pa7Signs, paClanBank);
+    TSegmentAction = (saStop, saMoveTo, saMoving, saParsing, sa7S_getdlg, sa7S_ok,
+        sa7S_err, sa7S_already);
     TBufferState = (bsIdle, bsWaiting, bsReady);
 
-    PPathContext = ^TPathContext;
-
-    TPathContext = record
+    TPathContext = class
     private
         OID: int32;
 
         FRecv1, FRecv2, FRecv3: int32;
         FWaitState: TBufferState;
-        FLastResponse, FOutputBuffer: array [0 .. MAX_DLG_BUFFER] of AnsiChar;
+        // FLastResponse,
+        FOutputBuffer: array[0..MAX_DLG_BUFFER] of AnsiChar;
 
+        FGoalID: uint32;
         FSegments: array of TSegmentAction; // заполняется при выборе в окне действия
         FCurrentSegment: int32; // текущий индекс сегмента
-        FSteps: TSteps; // шаги из текущего сегмента, то самое, что длл отдает адрику один за одним
+        FSteps: TSteps;
+        // шаги из текущего сегмента, то самое, что длл отдает адрику один за одним
         FCurrentStep: int32; // индекс шажочка в FSteps
 
-        {
-          выбрали точку на форме - заполнили FSegments всем скриптом
-
-
-
-
-
-        }
-
         procedure SetOutputText(const AText: string);
-
     public
-        PointCount, ActionCount: int32;
-        Distance, TotalCost: Double;
+        StartPoint: TPoint3D;
+        Params: TDictionary<string, Variant>;
 
-        procedure GenerateScenario(frm: TForm; PointData: uint32);
+        procedure GenerateScenario(PointData: uint32);
+        procedure GenerateSegment(const SegmentType: TSegmentAction);
 
         procedure GetText(AText: PAnsiChar);
         function SendStringAddr: PAnsiChar;
         procedure RecvInt(X, Y, Z: Integer);
         function GetAction(var act, X, Y, Z: Integer): boolean;
+        constructor Create;
+        destructor Destroy; override;
     end;
 
 var
 
-    Contexts: array of PPathContext;
+    Contexts: array of TPathContext;
 
-function GetContext(AOID: int32): PPathContext;
+function GetContext(AOID: int32): TPathContext;
 procedure Release(AOID: int32);
 
 implementation
+
+constructor TPathContext.Create;
+begin
+    Params := TDictionary<string, Variant>.Create;
+end;
+
+destructor TPathContext.Destroy;
+begin
+    Params.Free;
+    inherited Destroy;
+end;
 
 procedure Release(AOID: int32);
 var
@@ -66,11 +74,12 @@ var
 begin
     for i := 0 to High(Contexts) do
     begin
-        if Contexts[i]^.OID = AOID then
+        if Contexts[i].OID = AOID then
         begin
 
-            SetLength(Contexts[i]^.FSteps, 0);
-            FreeMem(Contexts[i]);
+            // Уничтожаем объект. Это вызовет destructor, где живет Params.Free
+            Contexts[i].Free;
+
             for j := i to High(Contexts) - 1 do
                 Contexts[j] := Contexts[j + 1];
 
@@ -80,120 +89,121 @@ begin
     end;
 end;
 
-function GetContext(AOID: int32): PPathContext;
+function GetContext(AOID: int32): TPathContext;
 var
     i: int32;
 begin
     for i := 0 to High(Contexts) do
-        if Contexts[i]^.OID = AOID then
+        if Contexts[i].OID = AOID then
         begin
             Result := Contexts[i];
             Exit;
         end;
-    GetMem(Result, SizeOf(TPathContext));
-    FillChar(Result^, SizeOf(TPathContext), 0); // �������� ��
+    // Создаем новый экземпляр класса
+    Result := TPathContext.Create; // Сработает твой конструктор с Params
+    Result.OID := AOID;
 
-    Result^.OID := AOID;
+    // Добавляем в массив
     SetLength(Contexts, Length(Contexts) + 1);
     Contexts[High(Contexts)] := Result;
 end;
 
-{ TPathContext }
 procedure TPathContext.SetOutputText(const AText: string);
 begin
     AnsiStrings.StrPLCopy(FOutputBuffer, AnsiString(AText), MAX_DLG_BUFFER - 1);
 end;
 
-procedure TPathContext.GenerateScenario(frm: TForm; PointData: uint32);
-// TPredefinedAction = (paMove, pa7Signs, paClanBank);
-var
-    scenario_index: int32;
-begin
-    PointData := uint32(PointData);
-    if (PointData and $80000000) = 0 then
-    begin // simple moveto
-
-    end else begin
-        scenario_index := PointData and $7FFFFFFF;
-
-    end;
-end;
-
 function TPathContext.GetAction(var act, X, Y, Z: Integer): boolean;
 begin
-    Result := True;
 
-    if FWaitState = bsWaiting then
+    if FCurrentStep >= Length(FSteps) then // current segment is over
     begin
-        act := 80; // ������� Delay
-        X := 100;
-        Exit;
-    end;
+        inc(FCurrentSegment); // При первом запуске -1 станет 0
 
-    { 2. ���� ������ ������ (stReady), ���������� ���� � ��� ������ }
-    if FWaitState = bsReady then
-        FWaitState := bsIdle;
+        // если у нас нет больше сегментов - выходим
+        if FCurrentSegment >= Length(FSegments) then
+            Exit(false);
 
-    { 3. �������� ������������������ (��� ������ FFinalPath) }
-    case FCurrentStep of
-        0:
-            begin // ���� ������
-                act := 5;
-                SetOutputText('DLL: Link test started...'); // ����� ������ � FOutputBuffer
-            end;
-
-        1:
-            begin // ���� ����� ������ (C -> S)
-                act := 31; // ������ ������ �������� DlgText
-                FWaitState := bsWaiting;
-            end;
-
-        2:
-            begin // ���� �������� ������ (S -> C)
-                act := 5;
-                { ���� ��, ��� ������ ������� �� ���� 1, � ����� ������� ��� Print }
-                // SetOutputText('DLL ��������: ' + string(FLastResponse));
-                // SetOutputText('DLL ��������: ' + UTF8ToString(PAnsiChar(@FLastResponse[0])));
-                // SetOutputText('DLL received HTML. Length: ' + IntToStr(Length(string(FLastResponse))));
-                SetOutputText('DLL received HTML. Length: ' + inttostr(Length(string(FLastResponse))));
-
-            end;
-
-        3:
-            begin // ���� ����� (C -> S)
-                act := 40; // ��������, 40 - ��� ���� �������� ������� �� �����
-                FWaitState := bsWaiting;
-            end;
-
-        4:
-            begin // ���� ������ ���������� �����
-                act := 5;
-
-                SetOutputText('Numbers from script: ' + inttostr(FRecv1) + ', ' + inttostr(FRecv2));
-            end;
-
-        5:
-            begin // ����������
-                act := 0; // Stop
-
-                FCurrentStep := 0;
-                Result := False;
-            end;
-    else
-        act := 0;
+        // Генерируем шаги для текущего сегмента
+        GenerateSegment(FSegments[FCurrentSegment]);
         FCurrentStep := 0;
-        Result := False;
+
+        // Если после генерации шагов всё еще 0 (например, А* не нашел путь),
+        // цикл уйдет на следующую итерацию и попробует следующий сегмент
     end;
-    if Result then
-        inc(FCurrentStep);
+
+    act := FSteps[FCurrentStep].act;
+    X := FSteps[FCurrentStep].data0;
+    Y := FSteps[FCurrentStep].data1;
+    Z := FSteps[FCurrentStep].data2;
+    if FSteps[FCurrentStep].str <> '' then
+        SetOutputText(FSteps[FCurrentStep].str);
+    inc(FCurrentStep);
+    Result := True;
+end;
+
+procedure TPathContext.GenerateSegment(const SegmentType: TSegmentAction);
+var
+    //    TargetID: uint32;
+    StartID: Integer;
+begin
+
+    try
+        case SegmentType of
+            saMoveTo:
+                begin
+                    // if not Params.TryGetValue('TargetID', Variant(TargetID)) then                        raise Exception.Create('TargetID not found in Params');
+                    SetLength(FSteps, 1);
+                    FSteps[0].act := actStrFromDLL;
+                    FSteps[0].str := graph_points[FGoalID].Name;
+                    StartID := FindNearestPoint(StartPoint);
+                    if StartID = -1 then
+                        raise Exception.Create('Start point not found');
+                    // Генерируем шаги через А*
+                    DoAStar(FSteps, graph_points[StartID], graph_points[FGoalID]);
+                end;
+            // Тут будут saStop, saParsing и прочие...
+        end;
+    except
+        on E: Exception do
+        begin
+            SetLength(FSteps, 2);
+            FSteps[0].act := actStrFromDLL;
+            FSteps[0].str := 'Error: ' + E.Message;
+            FSteps[1].act := actStop; // Stop
+        end;
+    end;
+
+end;
+
+procedure TPathContext.GenerateScenario(PointData: uint32);
+begin
+    FGoalID := PointData;
+    if (FGoalID and $80000000) = 0 then
+    begin
+        // simple moveto
+        SetLength(FSegments, 1);
+        FSegments[0] := saMoveTo;
+
+    end
+    else
+    begin
+        // scenario_index := PointData and $7FFFFFFF;
+    end;
+
+    // КЛЮЧЕВОЙ МОМЕНТ:
+    FCurrentSegment := -1; // Указываем, что мы еще не начали
+    FCurrentStep := 0;
+    SetLength(FSteps, 0);
+    // Очищаем шаги, чтобы GetAction сразу зашел в блок генерации
 end;
 
 procedure TPathContext.GetText(AText: PAnsiChar);
 begin
     if (AText <> nil) then
-        AnsiStrings.StrLCopy(FLastResponse, AText, MAX_DLG_BUFFER - 1)
+        AnsiStrings.StrLCopy(FOutputBuffer, AText, MAX_DLG_BUFFER - 1)
     else
-        FLastResponse[0] := #0;
+        FOutputBuffer[0] := #0;
 
     FWaitState := bsReady;
 end;
@@ -213,3 +223,4 @@ begin
 end;
 
 end.
+

@@ -8,7 +8,8 @@ uses
     Vcl.Controls,
     uPathfinder in 'uPathfinder.pas',
     uWaypointForm in 'uWaypointForm.pas',
-    astar in 'astar.pas';
+    astar in 'astar.pas',
+    uConstants in 'uConstants.pas';
 
 {$R *.res}
 
@@ -19,13 +20,10 @@ begin
     Result := False;
     Frm := TWaypointForm.Create(nil);
     try
-        Frm.pctx := GetContext(OID);
-        Frm.StartPoint := tpoint3d.Create(SX, SY, SZ);
+        Frm.ctx := GetContext(OID);
+        Frm.ctx.StartPoint := tpoint3d.Create(SX, SY, SZ);
         if Frm.ShowModal = mrOk then
-        begin
-            // Frm.selected_point.CopyTo(DestX, DestY, DestZ);
             Result := True;
-        end;
     finally
         Frm.Free;
     end;
@@ -38,42 +36,40 @@ end;
 
 procedure StrToDLL(OID: Integer; AText: PAnsiChar); stdcall;
 var
-    Ctx: PPathContext;
+    ctx: TPathContext;
 begin
-    Ctx := GetContext(OID); // ���� �������� ��������� � ������
-    if Ctx <> nil then
-        Ctx^.GetText(AText);
+    ctx := GetContext(OID);
+    if ctx <> nil then
+        ctx.GetText(AText);
 end;
 
 function StrFromDLL(OID: Integer): PAnsiChar; stdcall;
 var
-    Ctx: PPathContext;
+    ctx: TPathContext;
 begin
     Result := nil;
-    Ctx := GetContext(OID);
-    if (Ctx <> nil) then
-        Result := Ctx^.SendStringAddr;
+    ctx := GetContext(OID);
+    if (ctx <> nil) then
+        Result := ctx.SendStringAddr;
 end;
 
 procedure IntToDLL(OID: Integer; V1, V2, v3: Integer); stdcall;
 var
-    Ctx: PPathContext;
+    ctx: TPathContext;
 begin
-    Ctx := GetContext(OID);
-    if (Ctx <> nil) then
-        Ctx^.RecvInt(V1, V2, v3);
+    ctx := GetContext(OID);
+    if (ctx <> nil) then
+        ctx.RecvInt(V1, V2, v3);
 end;
-
-{ PathFinder.dpr }
 
 function IntFromDLL(OID: Integer; var Act, X, Y, Z: Integer): Boolean; stdcall;
 var
-    Ctx: PPathContext;
+    ctx: TPathContext;
 begin
     Result := False;
-    Ctx := GetContext(OID);
-    if (Ctx <> nil) then
-        Result := Ctx^.GetAction(Act, X, Y, Z);
+    ctx := GetContext(OID);
+    if (ctx <> nil) then
+        Result := ctx.GetAction(Act, X, Y, Z);
 
 end;
 
