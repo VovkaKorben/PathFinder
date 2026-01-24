@@ -4,3 +4,9 @@ __history/*
 *.local
 *.stat
 *.identcache
+*.ico
+*.png
+*.dproj
+*.dres
+*.rc*
+*.txt

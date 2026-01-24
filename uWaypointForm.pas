@@ -21,10 +21,13 @@ type
         panMove: TPanel;
         panClanbank: TPanel;
         Memo1: TMemo;
-        CheckBox1: TCheckBox;
-        CheckBox2: TCheckBox;
         Panel1: TPanel;
         Label1: TLabel;
+    RadioButton1: TRadioButton;
+    RadioButton2: TRadioButton;
+    CheckBox1: TCheckBox;
+    CheckBox2: TCheckBox;
+    CheckBox3: TCheckBox;
         procedure FormCreate(Sender: TObject);
         procedure lvWaypointsDblClick(Sender: TObject);
         procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);

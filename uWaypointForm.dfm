@@ -76,8 +76,8 @@ object WaypointForm: TWaypointForm
     end
     object panClanbank: TPanel
       Tag = 2
-      Left = 64
-      Top = 156
+      Left = 120
+      Top = 76
       Width = 110
       Height = 141
       BevelOuter = bvNone
@@ -86,33 +86,57 @@ object WaypointForm: TWaypointForm
     end
     object pan7Signs: TPanel
       Tag = 1
-      Left = 80
-      Top = 275
+      Left = 60
+      Top = 263
       Width = 185
       Height = 141
       Caption = 'pan7Signs'
       TabOrder = 0
-      object CheckBox1: TCheckBox
-        Left = 8
-        Top = 8
-        Width = 97
+      object RadioButton1: TRadioButton
+        Left = 16
+        Top = 16
+        Width = 57
         Height = 17
-        Caption = 'CheckBox1'
+        Caption = 'Down'
         TabOrder = 0
       end
-      object CheckBox2: TCheckBox
-        Left = 8
-        Top = 23
+      object RadioButton2: TRadioButton
+        Left = 79
+        Top = 20
+        Width = 57
+        Height = 17
+        Caption = 'Dusk'
+        TabOrder = 1
+      end
+      object CheckBox1: TCheckBox
+        Left = 28
+        Top = 43
         Width = 97
         Height = 17
-        Caption = 'CheckBox2'
-        TabOrder = 1
+        Caption = 'Seal of Avarice'
+        TabOrder = 2
+      end
+      object CheckBox2: TCheckBox
+        Left = 28
+        Top = 59
+        Width = 97
+        Height = 17
+        Caption = 'Seal of Gnosis'
+        TabOrder = 3
+      end
+      object CheckBox3: TCheckBox
+        Left = 28
+        Top = 75
+        Width = 97
+        Height = 17
+        Caption = 'Seal of Strife'
+        TabOrder = 4
       end
     end
     object Panel1: TPanel
       Tag = 3
-      Left = 20
-      Top = 235
+      Left = -9
+      Top = 115
       Width = 110
       Height = 141
       BevelOuter = bvNone

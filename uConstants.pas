@@ -26,6 +26,7 @@ interface
 
 const
     actStop = 0; // stop activity and finish execution
+    actDelay = 5;
     // actMsgFromDll = 5; // send: msg (str)
     actMove = 10; // move(int,int,int)
     actNpcSel = 20;
@@ -33,10 +34,11 @@ const
     actDlgSel = 40;
     actDlgTextToDLL = 50;
     actCBTextToDLL = 60;
-//    actStrToDLL = 70;
+    //    actStrToDLL = 70;
     actStrFromDLL = 80;
     actIntToDLL = 90;
 
 implementation
 
 end.
+

@@ -22,16 +22,17 @@ type
     TIntArray = array of int32;
 
     // хранит "микрокод" для действий из ActionData
-    TMicrocodeStep = array [0 .. 1] of int32;
+    TMicrocodeStep = array[0..1] of int32;
     TMicrocodeList = array of TMicrocodeStep;
 
     TLink = record
         ID, Weight, TargetID: int32;
         Distance: Double;
         ActionData: TMicrocodeList // шаги микрокода
-        end;
+    end;
 
-        TPoint3D = record ID: int32;
+    TPoint3D = record
+        ID: int32;
         X, Y, Z: int32;
         Name: string;
         Links: array of TLink;
@@ -229,7 +230,7 @@ var
         // sum pt+actions and setup final array len
         insert_pos := result.PointCount + result.RawActionCount;
         SetLength(steps, Length(steps) + insert_pos);
-          insert_pos:=    Length(steps)-1;// set pointer to last element
+        insert_pos := Length(steps) - 1; // set pointer to last element
         temp_id := node_id;
 
         // fill path with steps --------------------------------------------------------------------
@@ -491,7 +492,8 @@ begin
             end;
 
             // fetch links
-            if not check_DB_error(sqlite3_prepare_v2(db, 'SELECT l.id, l.start_point_id, l.end_point_id, l.one_way, e.action_data, e.weight FROM link l LEFT JOIN extra e ON l.id = e.link_id', -1, stmt, nil)) then
+            if not check_DB_error(sqlite3_prepare_v2(db, 'SELECT l.id, l.start_point_id, l.end_point_id, l.one_way, e.action_data, e.weight FROM link l LEFT JOIN extra e ON l.id = e.link_id', -1,
+                stmt, nil)) then
                 Exit;
             // if not check_DB_error(sqlite3_prepare_v2(db, 'SELECT id,start_point_id, end_point_id, one_way, action_data,weight FROM link', -1, stmt, nil)) then                Exit;
 
@@ -557,11 +559,14 @@ end;
 
 initialization
 
-if FileExists(FullDbPath) then
-begin
-    InitPathfinder(PAnsiChar(AnsiString(FullDbPath)));
-end else begin
-    Log('Database not found: ' + FullDbPath);
-end;
+    if FileExists(FullDbPath) then
+    begin
+        InitPathfinder(PAnsiChar(AnsiString(FullDbPath)));
+    end
+    else
+    begin
+        Log('Database not found: ' + FullDbPath);
+    end;
 
 end.
+

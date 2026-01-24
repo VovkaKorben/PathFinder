@@ -11,9 +11,8 @@ const
     MAX_DLG_BUFFER = 16384;
 
 type
-    TPredefinedAction = (paMove, pa7Signs, paClanBank);
-    TSegmentAction = (saStop, saMoveTo, saMoving, saParsing, sa7S_getdlg, sa7S_ok,
-        sa7S_err, sa7S_already);
+    TPredefinedAction = (paMove, pa7Signs, paClanBank, paTest);
+    TSegmentAction = (saStop, saMoveTo, saMoving, sa7S_MoveToPriest, sa7S_ProcessDlg, saTest);
     TBufferState = (bsIdle, bsWaiting, bsReady);
 
     TPathContext = class
@@ -31,6 +30,10 @@ type
         FSteps: TSteps;
         // шаги из текущего сегмента, то самое, что длл отдает адрику один за одним
         FCurrentStep: int32; // индекс шажочка в FSteps
+
+        FSubStep: Integer; // Для шагов регистрации (4 -> seal -> 1)
+        FPriestIndex: Integer; // Индекс выбранного непися
+        procedure ProcessDialogue(var act, X: Integer); // Под-функция для парсинга
 
         procedure SetOutputText(const AText: string);
     public
@@ -56,6 +59,60 @@ function GetContext(AOID: int32): TPathContext;
 procedure Release(AOID: int32);
 
 implementation
+type
+    TPriestData = record
+        Loc: string;
+        NpcId: Int32;
+        PriestType: Int32; // 0 - Dawn, 1 - Dusk
+        Pos: TPoint3D;
+    end;
+
+const
+    PRIESTS: array[0..21] of TPriestData = (
+        (Loc: 'Gludin'; NpcId: 31078; PriestType: 0; Pos: (X: - 80555; Y: 150387; Z: - 3040)),
+        (Loc: 'Gludio'; NpcId: 31079; PriestType: 0; Pos: (X: - 13953; Y: 121454; Z: - 2984)),
+        (Loc: 'Dion'; NpcId: 31080; PriestType: 0; Pos: (X: 16354; Y: 142870; Z: - 2696)),
+        (Loc: 'Giran'; NpcId: 31081; PriestType: 0; Pos: (X: 83369; Y: 149273; Z: - 3400)),
+        (Loc: 'Innadril'; NpcId: 31082; PriestType: 0; Pos: (X: 111386; Y: 220908; Z: - 3544)),
+        (Loc: 'Oren'; NpcId: 31083; PriestType: 0; Pos: (X: 83106; Y: 54015; Z: - 1488)),
+        (Loc: 'Aden'; NpcId: 31084; PriestType: 0; Pos: (X: 146983; Y: 26645; Z: - 2200)),
+        (Loc: 'Gludin'; NpcId: 31085; PriestType: 1; Pos: (X: - 82368; Y: 151618; Z: - 3120)),
+        (Loc: 'Gludio'; NpcId: 31086; PriestType: 1; Pos: (X: - 14748; Y: 124045; Z: - 3112)),
+        (Loc: 'Dion'; NpcId: 31087; PriestType: 1; Pos: (X: 18482; Y: 144626; Z: - 3056)),
+        (Loc: 'Giran'; NpcId: 31088; PriestType: 1; Pos: (X: 81623; Y: 148606; Z: - 3464)),
+        (Loc: 'Innadril'; NpcId: 31089; PriestType: 1; Pos: (X: 112486; Y: 220173; Z: - 3592)),
+        (Loc: 'Oren'; NpcId: 31090; PriestType: 1; Pos: (X: 82819; Y: 54657; Z: - 1520)),
+        (Loc: 'Aden'; NpcId: 31091; PriestType: 1; Pos: (X: 147570; Y: 28927; Z: - 2264)),
+        (Loc: 'Hunters Village'; NpcId: 31168; PriestType: 0; Pos: (X: 115136; Y: 74767; Z: - 2608)),
+        (Loc: 'Hunters Village'; NpcId: 31169; PriestType: 1; Pos: (X: 116642; Y: 77560; Z: - 2688)),
+        (Loc: 'Godard'; NpcId: 31692; PriestType: 0; Pos: (X: 148256; Y: - 55504; Z: - 2779)),
+        (Loc: 'Godard'; NpcId: 31693; PriestType: 1; Pos: (X: 149888; Y: - 56624; Z: - 2979)),
+        (Loc: 'Rune'; NpcId: 31694; PriestType: 0; Pos: (X: 45664; Y: - 50368; Z: - 800)),
+        (Loc: 'Rune'; NpcId: 31695; PriestType: 1; Pos: (X: 44528; Y: - 48420; Z: - 800)),
+        (Loc: 'Schuttgart'; NpcId: 31997; PriestType: 0; Pos: (X: 86816; Y: - 143200; Z: - 1341)),
+        (Loc: 'Schuttgart'; NpcId: 31998; PriestType: 1; Pos: (X: 85152; Y: - 142112; Z: - 1542))
+        );
+
+function FindNearestPriest(const CurrentPos: TPoint3D; Side: Integer): Integer;
+var
+    i: Integer;
+    MinDist, D: Double;
+begin
+    Result := -1;
+    MinDist := 1E30;
+    for i := Low(PRIESTS) to High(PRIESTS) do
+    begin
+        if PRIESTS[i].PriestType = Side then
+        begin
+            D := CurrentPos.DistanceTo(PRIESTS[i].Pos); // Используем твой TPoint3D
+            if D < MinDist then
+            begin
+                MinDist := D;
+                Result := i;
+            end;
+        end;
+    end;
+end;
 
 constructor TPathContext.Create;
 begin
@@ -115,21 +172,40 @@ end;
 
 function TPathContext.GetAction(var act, X, Y, Z: Integer): boolean;
 begin
-
-    if FCurrentStep >= Length(FSteps) then // current segment is over
+    // 1. Если ждём ответа от скрипта
+    if FWaitState = bsWaiting then
     begin
-        inc(FCurrentSegment); // При первом запуске -1 станет 0
+        act := actDelay;
+        X := 100;
+        Exit(True);
+    end;
 
-        // если у нас нет больше сегментов - выходим
+    // 2. Если ответ пришёл — парсим его
+    if FWaitState = bsReady then
+    begin
+        FWaitState := bsIdle;
+        case FSegments[FCurrentSegment] of
+            sa7S_ProcessDlg:
+                begin
+                    ProcessDialogue(act, X);
+                    Exit(True);
+                end;
+            saTest:
+                begin
+                    SetOutputText('Message length: ' + IntToStr(Length(string(AnsiString(FOutputBuffer)))));
+                    act := actStrFromDLL;
+                    Exit(True);
+                end;
+        end;
+    end;
+
+    if FCurrentStep >= Length(FSteps) then
+    begin
+        inc(FCurrentSegment);
         if FCurrentSegment >= Length(FSegments) then
             Exit(false);
-
-        // Генерируем шаги для текущего сегмента
         GenerateSegment(FSegments[FCurrentSegment]);
         FCurrentStep := 0;
-
-        // Если после генерации шагов всё еще 0 (например, А* не нашел путь),
-        // цикл уйдет на следующую итерацию и попробует следующий сегмент
     end;
 
     act := FSteps[FCurrentStep].act;
@@ -138,14 +214,19 @@ begin
     Z := FSteps[FCurrentStep].data2;
     if FSteps[FCurrentStep].str <> '' then
         SetOutputText(FSteps[FCurrentStep].str);
+
+    // Если действие — запрос текста (act 50), уходим в ожидание
+    if act = actDlgTextToDLL then
+        FWaitState := bsWaiting;
+
     inc(FCurrentStep);
     Result := True;
 end;
 
 procedure TPathContext.GenerateSegment(const SegmentType: TSegmentAction);
 var
-    //    TargetID: uint32;
-    StartID: Integer;
+
+    StartID, TargetID: Integer;
 begin
 
     try
@@ -162,6 +243,43 @@ begin
                     // Генерируем шаги через А*
                     DoAStar(FSteps, graph_points[StartID], graph_points[FGoalID]);
                 end;
+            saTest:
+                begin
+                    SetLength(FSteps, 1);
+                    FSteps[0].act := 50; // actDlgTextToDLL — просим скрипт прислать строку
+                end;
+            sa7S_MoveToPriest:
+                begin
+                    // Ищем точки в графе для нас и для жреца
+                    StartID := FindNearestPoint(StartPoint);
+                    TargetID := FindNearestPoint(PRIESTS[FPriestIndex].Pos);
+
+                    if (StartID = -1) or (TargetID = -1) then
+                        raise Exception.Create('Точка не найдена в графе');
+
+                    SetLength(FSteps, 0); // Чистим перед генерацией
+                    DoAStar(FSteps, graph_points[StartID], graph_points[TargetID]);
+
+                    // Добавляем финальный шаг точно в координаты жреца [cite: 2026-01-24]
+                    SetLength(FSteps, Length(FSteps) + 1);
+                    with FSteps[High(FSteps)] do
+                    begin
+                        act := actMove;
+                        PRIESTS[FPriestIndex].Pos.CopyTo(data0, data1, data2);
+                    end;
+                end;
+            sa7S_ProcessDlg:
+                begin
+                    // Готовим серию действий для начала диалога
+                    SetLength(FSteps, 3);
+                    // 1. Выделить непися
+                    FSteps[0].act := actNpcSel;
+                    FSteps[0].data0 := PRIESTS[FPriestIndex].NpcId;
+                    // 2. Открыть окно разговора
+                    FSteps[1].act := actNpcDlg;
+                    // 3. Запросить текст (это переведет систему в bsWaiting)
+                    FSteps[2].act := actDlgTextToDLL;
+                end;
             // Тут будут saStop, saParsing и прочие...
         end;
     except
@@ -177,6 +295,8 @@ begin
 end;
 
 procedure TPathContext.GenerateScenario(PointData: uint32);
+var
+    SideStr: string;
 begin
     FGoalID := PointData;
     if (FGoalID and $80000000) = 0 then
@@ -187,9 +307,34 @@ begin
 
     end
     else
-    begin
-        // scenario_index := PointData and $7FFFFFFF;
-    end;
+        case (FGoalID and $7FFFFFFF) of
+
+            1: // Семь Печатей
+                begin
+                    FPriestIndex := FindNearestPriest(StartPoint, Params['Side']);
+                    if FPriestIndex = -1 then
+                        raise Exception.Create('Жрец не найден!');
+
+                    // Формируем сообщение для консоли
+                    if Params['Side'] = 0 then
+                        SideStr := 'Dawn'
+                    else
+                        SideStr := 'Dusk';
+                    SetOutputText(Format('Используем %s, Priest of %s',
+                        [PRIESTS[FPriestIndex].Loc, SideStr]));
+
+                    SetLength(FSegments, 2);
+                    FSegments[0] := sa7S_MoveToPriest;
+                    FSegments[1] := sa7S_ProcessDlg;
+                    FSubStep := 0;
+                end;
+
+            3: // Наш Test
+                begin
+                    SetLength(FSegments, 1);
+                    FSegments[0] := saTest;
+                end;
+        end;
 
     // КЛЮЧЕВОЙ МОМЕНТ:
     FCurrentSegment := -1; // Указываем, что мы еще не начали
@@ -222,5 +367,68 @@ begin
     FWaitState := bsReady;
 end;
 
+procedure TPathContext.ProcessDialogue(var act, X: Integer);
+var
+    Dlg: string;
+    Available: TList<Integer>;
+begin
+    Dlg := string(AnsiString(FOutputBuffer)); // Берем то, что прислал скрипт
+
+    // Случай 8: Уже зарегистрированы
+    if Pos('The competition is underway', Dlg) > 0 then
+    begin
+        SetOutputText('Уже зарегистрированы');
+        FCurrentSegment := Length(FSegments); // Стоп машина
+        Exit;
+    end;
+
+    // Случай 7: Нужно регистрироваться
+    if Pos('Participation in the Seven Signs', Dlg) > 0 then
+    begin
+        case FSubStep of
+            0:
+                begin
+                    act := actDlgSel;
+                    X := 4;
+                    FSubStep := 1;
+                    FWaitState := bsWaiting;
+                end;
+            1:
+                begin
+                    // Выбираем печать из тех, что ты отметил [cite: 2026-01-24]
+                    Available := TList<Integer>.Create;
+                    if Params['Seal1'] then
+                        Available.Add(1);
+                    if Params['Seal2'] then
+                        Available.Add(2);
+                    if Params['Seal3'] then
+                        Available.Add(3);
+
+                    act := actDlgSel;
+                    X := Available[Random(Available.Count)]; // Рандом из выбранных [cite: 2026-01-24]
+                    Available.Free;
+                    FSubStep := 2;
+                    FWaitState := bsWaiting;
+                end;
+            2:
+                begin
+                    act := actDlgSel;
+                    X := 1;
+                    FSubStep := 3;
+                    FWaitState := bsWaiting;
+                end;
+            3:
+                begin
+                    SetOutputText('Регистрация ОК');
+                    FCurrentSegment := Length(FSegments);
+                end;
+        end;
+        Exit;
+    end;
+
+    // Если ничего не подошло
+    SetOutputText('Какая-то херня с регистрацией');
+    FCurrentSegment := Length(FSegments);
+end;
 end.
 
