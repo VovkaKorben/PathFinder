@@ -84,55 +84,6 @@ object WaypointForm: TWaypointForm
       Caption = 'panClanbank'
       TabOrder = 2
     end
-    object pan7Signs: TPanel
-      Tag = 1
-      Left = 60
-      Top = 263
-      Width = 185
-      Height = 141
-      Caption = 'pan7Signs'
-      TabOrder = 0
-      object RadioButton1: TRadioButton
-        Left = 16
-        Top = 16
-        Width = 57
-        Height = 17
-        Caption = 'Down'
-        TabOrder = 0
-      end
-      object RadioButton2: TRadioButton
-        Left = 79
-        Top = 20
-        Width = 57
-        Height = 17
-        Caption = 'Dusk'
-        TabOrder = 1
-      end
-      object CheckBox1: TCheckBox
-        Left = 28
-        Top = 43
-        Width = 97
-        Height = 17
-        Caption = 'Seal of Avarice'
-        TabOrder = 2
-      end
-      object CheckBox2: TCheckBox
-        Left = 28
-        Top = 59
-        Width = 97
-        Height = 17
-        Caption = 'Seal of Gnosis'
-        TabOrder = 3
-      end
-      object CheckBox3: TCheckBox
-        Left = 28
-        Top = 75
-        Width = 97
-        Height = 17
-        Caption = 'Seal of Strife'
-        TabOrder = 4
-      end
-    end
     object Panel1: TPanel
       Tag = 3
       Left = -9
@@ -148,6 +99,61 @@ object WaypointForm: TWaypointForm
         Width = 48
         Height = 13
         Caption = 'test mode'
+      end
+    end
+    object pan7Signs: TPanel
+      Tag = 1
+      Left = 3
+      Top = 15
+      Width = 185
+      Height = 374
+      Caption = 'pan7Signs'
+      TabOrder = 0
+      object rbDawn: TRadioButton
+        Left = 16
+        Top = 16
+        Width = 57
+        Height = 17
+        Caption = 'Down'
+        Checked = True
+        TabOrder = 0
+        TabStop = True
+      end
+      object rbDusk: TRadioButton
+        Left = 71
+        Top = 12
+        Width = 57
+        Height = 17
+        Caption = 'Dusk'
+        TabOrder = 1
+      end
+      object cbSeal1: TCheckBox
+        Left = 28
+        Top = 43
+        Width = 97
+        Height = 17
+        Caption = 'Seal of Avarice'
+        Checked = True
+        State = cbChecked
+        TabOrder = 2
+      end
+      object cbSeal2: TCheckBox
+        Left = 28
+        Top = 59
+        Width = 97
+        Height = 17
+        Caption = 'Seal of Gnosis'
+        Checked = True
+        State = cbChecked
+        TabOrder = 3
+      end
+      object cbSeal3: TCheckBox
+        Left = 28
+        Top = 75
+        Width = 97
+        Height = 17
+        Caption = 'Seal of Strife'
+        TabOrder = 4
       end
     end
   end

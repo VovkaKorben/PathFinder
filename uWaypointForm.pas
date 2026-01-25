@@ -23,11 +23,11 @@ type
         Memo1: TMemo;
         Panel1: TPanel;
         Label1: TLabel;
-    RadioButton1: TRadioButton;
-    RadioButton2: TRadioButton;
-    CheckBox1: TCheckBox;
-    CheckBox2: TCheckBox;
-    CheckBox3: TCheckBox;
+        rbDawn: TRadioButton;
+        rbDusk: TRadioButton;
+        cbSeal1: TCheckBox;
+        cbSeal2: TCheckBox;
+        cbSeal3: TCheckBox;
         procedure FormCreate(Sender: TObject);
         procedure lvWaypointsDblClick(Sender: TObject);
         procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -87,6 +87,8 @@ begin
                 // Сохраняем состояние в зависимости от типа компонента
                 if SubCtrl is TCheckBox then
                     ctx.Params.AddOrSetValue(SubCtrl.Name, TCheckBox(SubCtrl).Checked) //
+                else if SubCtrl is TRadioButton then
+                    ctx.Params.AddOrSetValue(SubCtrl.Name, TRadioButton(SubCtrl).Checked)
                 else if SubCtrl is TComboBox then
                     ctx.Params.AddOrSetValue(SubCtrl.Name, TComboBox(SubCtrl).ItemIndex)
                 else if SubCtrl is TEdit then
@@ -352,43 +354,43 @@ begin
         if frameContainer.Controls[i] is TPanel then
             frameContainer.Controls[i].Visible := (frameContainer.Controls[i].Tag = scenario_index);
 
-    if False then // temporary disable
-        if scenario_index = 0 then
-            with Memo1.Lines do
-            begin
-                // path info
-                BeginUpdate;
-                try
-                    Clear;
-                    StartID := FindNearestPoint(ctx.StartPoint);
-                    TargetID := Integer(Item.Data);
-                    if StartID <> -1 then
-                        DistToStart := ctx.StartPoint.DistanceTo(graph_points[StartID])
-                    else
-                    begin
-                        Add('[lvWaypointsSelectItem] StartID = -1');
-                        Exit;
-                    end;
-
-                    setlength(steps, 0);
-                    pi := DoAStar(steps, graph_points[StartID], graph_points[TargetID]);
-
-                    Add('=== ROUTE INFO ===');
-                    Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
-                    Add('-------------------');
-                    Add(Format('Distance: %s units', [FormatFloat('###,##0', pi.Distance)]));
-                    if not FloatEqual(pi.TotalCost, pi.Distance) then
-                        Add(Format('Cost:   %.0f (inc. weights)', [pi.TotalCost]));
-                    Add('-------------------');
-                    Add(Format('Nodes: %d', [pi.PointCount]));
-                    if pi.ActionCount > 0 then
-                        Add(Format('Actions: %d', [pi.ActionCount]));
-                    Add(Format('Entry distance: %s units', [FormatFloat('###,##0', DistToStart)]));
-
-                finally
-                    EndUpdate;
+    //    if False then // temporary disable
+    if scenario_index = 0 then
+        with Memo1.Lines do
+        begin
+            // path info
+            BeginUpdate;
+            try
+                Clear;
+                StartID := FindNearestPoint(ctx.StartPoint);
+                TargetID := Integer(Item.Data);
+                if StartID <> -1 then
+                    DistToStart := ctx.StartPoint.DistanceTo(graph_points[StartID])
+                else
+                begin
+                    Add('[lvWaypointsSelectItem] StartID = -1');
+                    Exit;
                 end;
+
+                setlength(steps, 0);
+                pi := DoAStar(steps, graph_points[StartID], graph_points[TargetID]);
+
+                Add('=== ROUTE INFO ===');
+                Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
+                Add('-------------------');
+                Add(Format('Distance: %s units', [FormatFloat('###,##0', pi.Distance)]));
+                if not FloatEqual(pi.TotalCost, pi.Distance) then
+                    Add(Format('Cost:   %.0f (inc. weights)', [pi.TotalCost]));
+                Add('-------------------');
+                Add(Format('Nodes: %d', [pi.PointCount]));
+                if pi.ActionCount > 0 then
+                    Add(Format('Actions: %d', [pi.ActionCount]));
+                Add(Format('Entry distance: %s units', [FormatFloat('###,##0', DistToStart)]));
+
+            finally
+                EndUpdate;
             end;
+        end;
 
 end;
 

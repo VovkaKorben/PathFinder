@@ -18,6 +18,7 @@ type
     TPathContext = class
     private
         OID: int32;
+        FDialogueEchoed: Boolean;
 
         FRecv1, FRecv2, FRecv3: int32;
         FWaitState: TBufferState;
@@ -36,6 +37,7 @@ type
         procedure ProcessDialogue(var act, X: Integer); // Под-функция для парсинга
 
         procedure SetOutputText(const AText: string);
+        function StripHTML(const S: string): string;
     public
         StartPoint: TPoint3D;
         Params: TDictionary<string, Variant>;
@@ -170,6 +172,26 @@ begin
     AnsiStrings.StrPLCopy(FOutputBuffer, AnsiString(AText), MAX_DLG_BUFFER - 1);
 end;
 
+function TPathContext.StripHTML(const S: string): string;
+var
+    i: Integer;
+    Tag: Boolean;
+begin
+    Result := '';
+    Tag := False;
+    for i := 1 to Length(S) do
+    begin
+        if S[i] = '<' then
+            Tag := True
+        else if S[i] = '>' then
+            Tag := False
+        else if not Tag then
+            Result := Result + S[i];
+    end;
+    Result := Trim(Result);
+
+end;
+
 function TPathContext.GetAction(var act, X, Y, Z: Integer): boolean;
 begin
     // 1. Если ждём ответа от скрипта
@@ -234,9 +256,18 @@ begin
             saMoveTo:
                 begin
                     // if not Params.TryGetValue('TargetID', Variant(TargetID)) then                        raise Exception.Create('TargetID not found in Params');
-                    SetLength(FSteps, 1);
+                    SetLength(FSteps, 3);
+                    // output goal name
                     FSteps[0].act := actStrFromDLL;
                     FSteps[0].str := graph_points[FGoalID].Name;
+                    // disable adr
+                    FSteps[1].act := actFaceControl;
+                    FSteps[1].data0 := 0;
+                    FSteps[1].data1 := 0;
+                    // stand
+                    FSteps[2].act := actSitStand;
+                    FSteps[2].data0 := 1;
+
                     StartID := FindNearestPoint(StartPoint);
                     if StartID = -1 then
                         raise Exception.Create('Start point not found');
@@ -297,6 +328,7 @@ end;
 procedure TPathContext.GenerateScenario(PointData: uint32);
 var
     SideStr: string;
+    vSide: int32;
 begin
     FGoalID := PointData;
     if (FGoalID and $80000000) = 0 then
@@ -311,15 +343,22 @@ begin
 
             1: // Семь Печатей
                 begin
-                    FPriestIndex := FindNearestPriest(StartPoint, Params['Side']);
+                    // Если rbDusk нажат - сторона 1, иначе 0 (Dawn)
+                    if Params.ContainsKey('rbDusk') and Params['rbDusk'] then
+                    begin
+                        vSide := 1;
+                        SideStr := 'Dusk';
+                    end
+                    else
+                    begin
+                        vSide := 0;
+                        SideStr := 'Dawn';
+                    end;
+
+                    FPriestIndex := FindNearestPriest(StartPoint, vSide);
                     if FPriestIndex = -1 then
                         raise Exception.Create('Жрец не найден!');
 
-                    // Формируем сообщение для консоли
-                    if Params['Side'] = 0 then
-                        SideStr := 'Dawn'
-                    else
-                        SideStr := 'Dusk';
                     SetOutputText(Format('Используем %s, Priest of %s',
                         [PRIESTS[FPriestIndex].Loc, SideStr]));
 
@@ -340,6 +379,7 @@ begin
     FCurrentSegment := -1; // Указываем, что мы еще не начали
     FCurrentStep := 0;
     SetLength(FSteps, 0);
+    FDialogueEchoed := False;
     // Очищаем шаги, чтобы GetAction сразу зашел в блок генерации
 end;
 
@@ -369,13 +409,27 @@ end;
 
 procedure TPathContext.ProcessDialogue(var act, X: Integer);
 var
-    Dlg: string;
+    DlgRaw, DlgClean: string;
     Available: TList<Integer>;
 begin
-    Dlg := string(AnsiString(FOutputBuffer)); // Берем то, что прислал скрипт
+    DlgRaw := string(AnsiString(FOutputBuffer)); // Берем то, что прислал скрипт
+    DlgClean := StripHTML(DlgRaw);
+
+    // --- БЛОК ЭХО (закомментируй это, если надоест лог) ---
+    if not FDialogueEchoed then
+    begin
+        SetOutputText('Echo: ' + DlgClean);
+        act := actStrFromDLL; // Код 80: отправляем текст в Адрик
+        FDialogueEchoed := True;
+
+        // КЛЮЧЕВОЙ МОМЕНТ: заставляем DLL зайти сюда же на следующем тике
+        FWaitState := bsReady;
+        Exit;
+    end;
+    FDialogueEchoed := False;
 
     // Случай 8: Уже зарегистрированы
-    if Pos('The competition is underway', Dlg) > 0 then
+    if Pos('Contributing seal stones', DlgRaw) > 0 then
     begin
         SetOutputText('Уже зарегистрированы');
         FCurrentSegment := Length(FSegments); // Стоп машина
@@ -383,7 +437,7 @@ begin
     end;
 
     // Случай 7: Нужно регистрироваться
-    if Pos('Participation in the Seven Signs', Dlg) > 0 then
+    if Pos('Participation in the Seven Signs', DlgRaw) > 0 then
     begin
         case FSubStep of
             0:
@@ -397,15 +451,18 @@ begin
                 begin
                     // Выбираем печать из тех, что ты отметил [cite: 2026-01-24]
                     Available := TList<Integer>.Create;
-                    if Params['Seal1'] then
+                    // Проверяем наши чекбоксы по именам
+                    if Params.ContainsKey('cbSeal1') and Params['cbSeal1'] then
                         Available.Add(1);
-                    if Params['Seal2'] then
+                    if Params.ContainsKey('cbSeal2') and Params['cbSeal2'] then
                         Available.Add(2);
-                    if Params['Seal3'] then
+                    if Params.ContainsKey('cbSeal3') and Params['cbSeal3'] then
                         Available.Add(3);
 
+                    if Available.Count = 0 then
+                        Available.Add(1); // Заплатка, если ничего не выбрано
                     act := actDlgSel;
-                    X := Available[Random(Available.Count)]; // Рандом из выбранных [cite: 2026-01-24]
+                    X := Available[Random(Available.Count)];
                     Available.Free;
                     FSubStep := 2;
                     FWaitState := bsWaiting;
