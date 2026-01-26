@@ -49,6 +49,8 @@ type
     TStep = record
         act, data0, data1, data2: int32;
         str: string;
+        procedure AssignInt(act: int32; data0: int32 = 0; data1: int32 = 0; data2: int32 = 0);
+        procedure AssignStr(str: string; data0: int32 = 0);
     end;
 
     // procedure AssignFromPoint(const p: TPoint3D);    procedure AssignAction(const npc_id, a0, a1: int32);    procedure CopyTo(var aa, ax, ay, az: int32);
@@ -76,6 +78,24 @@ var
 
     gScore, fScore: TDoubleArray;
     OpenSet, OpenSetIndex, CameFrom: TIntArray;
+
+procedure TStep.AssignInt(act, data0, data1, data2: int32);
+begin
+    Self.act := act;
+    Self.data0 := data0;
+    Self.data1 := data1;
+    Self.data2 := data2;
+end;
+{ TStep }
+
+procedure TStep.AssignStr(str: string; data0: int32);
+begin
+    Self.act := actStrFromDLL;
+    self.str:=str;
+    Self.data0 := data0;
+    Self.data1 := 0;
+    Self.data2 := 0;
+end;
 
 function FloatEqual(a, b: Double): boolean;
 begin
