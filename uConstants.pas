@@ -40,6 +40,10 @@ const
     actSitStand = 100;  // from DLL: p1 mode(0-1), 1 = stand
     actFaceControl = 110; // from DLL: p1 mode(0-4), p2 state(0-1)
 
+    actUseHP = 120;
+    actInvCount = 130;
+    actInvItem = 140;
+
 implementation
 
 end.
