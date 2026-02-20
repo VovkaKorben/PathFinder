@@ -7,7 +7,7 @@ uses
     Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.StdCtrls,
     System.Generics.Collections, uPathfinder, System.IniFiles, System.Generics.Defaults,
     Vcl.Buttons, astar,
-    Vcl.Themes, Vcl.Styles, Vcl.ExtCtrls;
+    Vcl.Themes, Vcl.Styles, Vcl.ExtCtrls, System.Variants;
 
 type
     TWaypointForm = class(TForm)
@@ -28,6 +28,7 @@ type
         cbSeal1: TCheckBox;
         cbSeal2: TCheckBox;
         cbSeal3: TCheckBox;
+
         procedure FormCreate(Sender: TObject);
         procedure lvWaypointsDblClick(Sender: TObject);
         procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -38,7 +39,14 @@ type
         procedure RefreshList;
         procedure FormClose(Sender: TObject; var Action: TCloseAction);
         procedure FillPoints;
-        procedure ExtractParamsToContext();
+        //        procedure ExtractParamsToContext();
+        procedure FormDestroy(Sender: TObject);
+    private
+        FFormParams: TDictionary<string, Variant>;
+        procedure SyncUI(ALoadToUI: Boolean);
+        procedure LoadSettingsFromIni;
+        procedure SaveSettingsToIni;
+        procedure ApplyParamsToContext;
     public
 
         ctx: TPathContext;
@@ -57,46 +65,162 @@ const
 implementation
 
 {$R *.dfm}
+// 1. Загрузка из INI в локальный словарь
 
-procedure TWaypointForm.ExtractParamsToContext();
+procedure TWaypointForm.LoadSettingsFromIni;
 var
-    i, j: Integer;
-    PanelCtrl: TControl;
-    SubCtrl: TControl;
+    Ini: TIniFile;
+    slKeys: TStringList;
+    Key: string;
+begin
+    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+    slKeys := TStringList.Create;
+    try
+        FFormParams.Clear;
+        // Читаем все ключи из секции настроек контролов
+        Ini.ReadSection('ControlSettings', slKeys);
+        for Key in slKeys do
+            FFormParams.AddOrSetValue(Key, Ini.ReadString('ControlSettings', Key, ''));
+    finally
+        slKeys.Free;
+        Ini.Free;
+    end;
+end;
+
+// 2. Сохранение из локального словаря в INI
+
+procedure TWaypointForm.SaveSettingsToIni;
+var
+    Ini: TIniFile;
+    Key: string;
+begin
+    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+    try
+        // Сохраняем контролы
+        for Key in FFormParams.Keys do
+            Ini.WriteString('ControlSettings', Key, VarToStr(FFormParams[Key]));
+
+        // Сохраняем геометрию окна (перенесено из FormClose)
+        Ini.WriteInteger('Window', 'Left', Self.Left);
+        Ini.WriteInteger('Window', 'Top', Self.Top);
+        Ini.WriteInteger('Window', 'Width', Self.Width);
+        Ini.WriteInteger('Window', 'Height', Self.Height);
+
+        // Сохраняем последнюю цель (если она выбрана)
+        if lvWaypoints.Selected <> nil then
+            Ini.WriteInteger('Settings', 'LastTarget', Integer(uint32(lvWaypoints.Selected.Data)));
+
+    finally
+        Ini.Free;
+    end;
+end;
+
+// 3. Копирование черновика в основной контекст (Транзакция)
+
+procedure TWaypointForm.ApplyParamsToContext;
+var
+    Pair: TPair<string, Variant>;
 begin
     if ctx = nil then
         Exit;
 
-    // Бежим по элементам frameContainer
+    ctx.Params.Clear; // Очищаем старое
+    for Pair in FFormParams do
+    begin
+        ctx.Params.Add(Pair.Key, Pair.Value); // Заливаем новое
+    end;
+end;
+
+procedure TWaypointForm.SyncUI(ALoadToUI: Boolean);
+var
+    i, j: Integer;
+    PanelCtrl, SubCtrl: TControl;
+    Val: Variant;
+begin
+    // Бежим по панелям во frameContainer
     for i := 0 to frameContainer.ControlCount - 1 do
     begin
         PanelCtrl := frameContainer.Controls[i];
-
-        // Нас интересуют только панели (panMove, pan7Signs и т.д.) [cite: 4, 6]
         if PanelCtrl is TPanel then
         begin
-            // Заходим внутрь панели
             for j := 0 to TPanel(PanelCtrl).ControlCount - 1 do
             begin
                 SubCtrl := TPanel(PanelCtrl).Controls[j];
-
-                // Игнорируем TMemo по твоему приказу
                 if SubCtrl is TMemo then
-                    Continue;
+                    Continue; // Мемо не трогаем
 
-                // Сохраняем состояние в зависимости от типа компонента
-                if SubCtrl is TCheckBox then
-                    ctx.Params.AddOrSetValue(SubCtrl.Name, TCheckBox(SubCtrl).Checked) //
-                else if SubCtrl is TRadioButton then
-                    ctx.Params.AddOrSetValue(SubCtrl.Name, TRadioButton(SubCtrl).Checked)
-                else if SubCtrl is TComboBox then
-                    ctx.Params.AddOrSetValue(SubCtrl.Name, TComboBox(SubCtrl).ItemIndex)
-                else if SubCtrl is TEdit then
-                    ctx.Params.AddOrSetValue(SubCtrl.Name, TEdit(SubCtrl).Text);
+                if ALoadToUI then
+                begin
+                    // Из словаря -> на Экран [cite: 12]
+                    if FFormParams.TryGetValue(SubCtrl.Name, Val) then
+                    begin
+                        if SubCtrl is TCheckBox then
+                            TCheckBox(SubCtrl).Checked := Val
+                        else if SubCtrl is TRadioButton then
+                            TRadioButton(SubCtrl).Checked := Val
+                        else if SubCtrl is TComboBox then
+                            TComboBox(SubCtrl).ItemIndex := Val
+                        else if SubCtrl is TEdit then
+                            TEdit(SubCtrl).Text := Val;
+                    end;
+                end
+                else
+                begin
+                    // С Экрана -> в словарь [cite: 12, 5]
+                    if SubCtrl is TCheckBox then
+                        FFormParams.AddOrSetValue(SubCtrl.Name, TCheckBox(SubCtrl).Checked)
+                    else if SubCtrl is TRadioButton then
+                        FFormParams.AddOrSetValue(SubCtrl.Name, TRadioButton(SubCtrl).Checked)
+                    else if SubCtrl is TComboBox then
+                        FFormParams.AddOrSetValue(SubCtrl.Name, TComboBox(SubCtrl).ItemIndex)
+                    else if SubCtrl is TEdit then
+                        FFormParams.AddOrSetValue(SubCtrl.Name, TEdit(SubCtrl).Text);
+                end;
             end;
         end;
     end;
 end;
+
+{
+procedure TWaypointForm.ExtractParamsToContext();
+var
+i, j: Integer;
+PanelCtrl: TControl;
+SubCtrl: TControl;
+begin
+if ctx = nil then
+Exit;
+
+// Бежим по элементам frameContainer
+for i := 0 to frameContainer.ControlCount - 1 do
+begin
+PanelCtrl := frameContainer.Controls[i];
+
+// Нас интересуют только панели (panMove, pan7Signs и т.д.) [cite: 4, 6]
+if PanelCtrl is TPanel then
+begin
+ // Заходим внутрь панели
+ for j := 0 to TPanel(PanelCtrl).ControlCount - 1 do
+ begin
+     SubCtrl := TPanel(PanelCtrl).Controls[j];
+
+     // Игнорируем TMemo по твоему приказу
+     if SubCtrl is TMemo then
+         Continue;
+
+     // Сохраняем состояние в зависимости от типа компонента
+     if SubCtrl is TCheckBox then
+         ctx.Params.AddOrSetValue(SubCtrl.Name, TCheckBox(SubCtrl).Checked) //
+     else if SubCtrl is TRadioButton then
+         ctx.Params.AddOrSetValue(SubCtrl.Name, TRadioButton(SubCtrl).Checked)
+     else if SubCtrl is TComboBox then
+         ctx.Params.AddOrSetValue(SubCtrl.Name, TComboBox(SubCtrl).ItemIndex)
+     else if SubCtrl is TEdit then
+         ctx.Params.AddOrSetValue(SubCtrl.Name, TEdit(SubCtrl).Text);
+ end;
+end;
+end;
+end;        }
 
 procedure ApplyCarbonStyle;
 begin
@@ -113,18 +237,19 @@ begin
 end;
 
 procedure TWaypointForm.FormClose(Sender: TObject; var Action: TCloseAction);
-var
-    Ini: TIniFile;
+//var    Ini: TIniFile;
 begin
-    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
-    try
-        Ini.WriteInteger('Window', 'Left', Self.Left);
-        Ini.WriteInteger('Window', 'Top', Self.Top);
-        Ini.WriteInteger('Window', 'Width', Self.Width);
-        Ini.WriteInteger('Window', 'Height', Self.Height);
-    finally
-        Ini.Free;
-    end;
+    SyncUI(False);
+    SaveSettingsToIni; //  Запоминаем в INI
+    { Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+     try
+         Ini.WriteInteger('Window', 'Left', Self.Left);
+         Ini.WriteInteger('Window', 'Top', Self.Top);
+         Ini.WriteInteger('Window', 'Width', Self.Width);
+         Ini.WriteInteger('Window', 'Height', Self.Height);
+     finally
+         Ini.Free;
+     end;}
 end;
 
 procedure TWaypointForm.FillPoints;
@@ -199,6 +324,7 @@ var
     i: int32;
     Pnl: TPanel;
 begin
+    FFormParams := TDictionary<string, Variant>.Create;
     Self.Icon.Handle := LoadIcon(HInstance, 'MAINICON');
     ApplyCarbonStyle;
     FillPoints;
@@ -217,6 +343,11 @@ begin
             Pnl.ParentBackground := False; // Запрещаем панели "просвечивать" до самого GroupBox
             Pnl.DoubleBuffered := True;
         end;
+end;
+
+procedure TWaypointForm.FormDestroy(Sender: TObject);
+begin
+    FFormParams.Free;
 end;
 
 // 2. Новая процедура FormShow - здесь магия восстановления
@@ -244,6 +375,9 @@ begin
     finally
         Ini.Free;
     end;
+
+    LoadSettingsFromIni; //  Загружаем из файла в словарь
+    SyncUI(True);
 
     if LastTargetID <> 0 then
     begin
@@ -308,8 +442,6 @@ begin
         Exit;
 
     PointData := uint32(lvWaypoints.Selected.Data);
-
-    // Сохраняем сценарий для выбранной точки в INI
     Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
     try
         Ini.WriteInteger('Settings', 'LastTarget', Integer(PointData));
@@ -317,8 +449,9 @@ begin
         Ini.Free;
     end;
 
-    // get all params from form to dict
-    ExtractParamsToContext();
+    SyncUI(False); //  Собираем всё с экрана в словарь
+
+    ApplyParamsToContext; //  Выливаем в контекст DLL
 
     // put scenario to segments
     ctx.GenerateScenario(PointData);

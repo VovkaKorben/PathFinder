@@ -13,6 +13,7 @@ object WaypointForm: TWaypointForm
   OldCreateOrder = False
   OnClose = FormClose
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnShow = FormShow
   DesignSize = (
     659
@@ -121,7 +122,7 @@ object WaypointForm: TWaypointForm
       end
       object rbDusk: TRadioButton
         Left = 71
-        Top = 12
+        Top = 16
         Width = 57
         Height = 17
         Caption = 'Dusk'
