@@ -251,18 +251,83 @@ begin
          Ini.Free;
      end;}
 end;
-
+{
 procedure TWaypointForm.FillPoints;
 
+var
+SortedPoints: TList<TPoint3D>;
+P: TPoint3D;
+Item: TListItem;
+CurrentChar, FirstChar: Char;
+j: int32;
+// c: uint32;
+begin
+
+SortedPoints := TList<TPoint3D>.Create;
+try
+for j := 0 to graph_points_count - 1 do
+begin
+if graph_points[j].ID = -1 then
+   Continue;
+if graph_points[j].Name <> '' then
+   SortedPoints.Add(graph_points[j]);
+end;
+
+SortedPoints.Sort(TComparer<TPoint3D>.Construct(
+function(const L, R: TPoint3D): Integer
+begin
+   Result := CompareText(L.Name, R.Name);
+end));
+
+lvWaypoints.Items.BeginUpdate;
+try
+lvWaypoints.Items.Clear;
+
+// add predefined actions (7 signs etc)
+Item := lvWaypoints.Items.Add;
+Item.Caption := '***';
+Item.Data := nil;
+
+for j := Low(ActionCaptions) + 1 to High(ActionCaptions) do
+begin
+   Item := lvWaypoints.Items.Add;
+   Item.Caption := ActionCaptions[j];
+   Item.Data := Pointer(uint32(j) or $80000000);
+end;
+
+// add standard points
+CurrentChar := #0;
+for P in SortedPoints do
+begin
+   FirstChar := UpCase(P.Name[1]);
+   if FirstChar <> CurrentChar then
+   begin
+       CurrentChar := FirstChar;
+       Item := lvWaypoints.Items.Add;
+       Item.Caption := CurrentChar;
+       Item.Data := nil;
+   end;
+   Item := lvWaypoints.Items.Add;
+   Item.Caption := P.Name;
+   Item.Data := Pointer(P.ID);
+end;
+finally
+lvWaypoints.Items.EndUpdate;
+end;
+finally
+SortedPoints.Free;
+end;
+end;        }
+
+procedure TWaypointForm.FillPoints;
 var
     SortedPoints: TList<TPoint3D>;
     P: TPoint3D;
     Item: TListItem;
     CurrentChar, FirstChar: Char;
+    CurrentCategory: string;
     j: int32;
-    // c: uint32;
 begin
-
     SortedPoints := TList<TPoint3D>.Create;
     try
         for j := 0 to graph_points_count - 1 do
@@ -276,14 +341,24 @@ begin
         SortedPoints.Sort(TComparer<TPoint3D>.Construct(
             function(const L, R: TPoint3D): Integer
             begin
-                Result := CompareText(L.Name, R.Name);
+                if (L.Category <> '') and (R.Category <> '') then
+                begin
+                    Result := CompareText(L.Category, R.Category);
+                    if Result = 0 then
+                        Result := CompareText(L.Name, R.Name);
+                end
+                else if L.Category <> '' then
+                    Result := -1
+                else if R.Category <> '' then
+                    Result := 1
+                else
+                    Result := CompareText(L.Name, R.Name);
             end));
 
         lvWaypoints.Items.BeginUpdate;
         try
             lvWaypoints.Items.Clear;
 
-            // add predefined actions (7 signs etc)
             Item := lvWaypoints.Items.Add;
             Item.Caption := '***';
             Item.Data := nil;
@@ -295,21 +370,38 @@ begin
                 Item.Data := Pointer(uint32(j) or $80000000);
             end;
 
-            // add standard points
             CurrentChar := #0;
+            CurrentCategory := '';
+
             for P in SortedPoints do
             begin
-                FirstChar := UpCase(P.Name[1]);
-                if FirstChar <> CurrentChar then
+                if P.Category <> '' then
                 begin
-                    CurrentChar := FirstChar;
+                    if CompareText(P.Category, CurrentCategory) <> 0 then
+                    begin
+                        CurrentCategory := P.Category;
+                        Item := lvWaypoints.Items.Add;
+                        Item.Caption := CurrentCategory;
+                        Item.Data := nil;
+                    end;
                     Item := lvWaypoints.Items.Add;
-                    Item.Caption := CurrentChar;
-                    Item.Data := nil;
+                    Item.Caption := P.Name;
+                    Item.Data := Pointer(P.ID);
+                end
+                else
+                begin
+                    FirstChar := UpCase(P.Name[1]);
+                    if FirstChar <> CurrentChar then
+                    begin
+                        CurrentChar := FirstChar;
+                        Item := lvWaypoints.Items.Add;
+                        Item.Caption := CurrentChar;
+                        Item.Data := nil;
+                    end;
+                    Item := lvWaypoints.Items.Add;
+                    Item.Caption := P.Name;
+                    Item.Data := Pointer(P.ID);
                 end;
-                Item := lvWaypoints.Items.Add;
-                Item.Caption := P.Name;
-                Item.Data := Pointer(P.ID);
             end;
         finally
             lvWaypoints.Items.EndUpdate;

@@ -36,6 +36,7 @@ type
         X, Y, Z: int32;
         Name: string;
         Links: array of TLink;
+        Category: string;
 
         function DistanceTo(const Other: TPoint3D): Double; overload;
         function DistanceTo(const TargetX, TargetY, TargetZ: int32): Double; overload;
@@ -511,6 +512,36 @@ begin
                 sqlite3_finalize(stmt);
             end;
 
+
+            // ---- ДОБАВЛЯЕМ ЭТОТ БЛОК ----
+            // Загружаем категории и описания из point_extra
+            if not check_DB_error(sqlite3_prepare_v2(db, 'SELECT pointId, catName, pointDescr FROM point_extra', -1, stmt, nil)) then
+                Exit;
+
+            try
+                while sqlite3_step(stmt) = 100 do
+                begin
+                    j := sqlite3_column_int(stmt, 0); // Читаем pointId
+
+                    // Проверяем, существует ли такая точка в нашем массиве
+                    if (j >= 0) and (j < graph_points_count) and (graph_points[j].ID <> -1) then
+                    begin
+                        // Читаем категорию
+                        pText := sqlite3_column_text(stmt, 1);
+                        if pText <> nil then
+                            graph_points[j].Category := UTF8ToString(pText);
+
+                        // Читаем описание и сразу добавляем в скобках к имени
+                        pText := sqlite3_column_text(stmt, 2);
+                        if pText <> nil then
+                            graph_points[j].Name := graph_points[j].Name + ' (' + UTF8ToString(pText) + ')';
+                    end;
+                end;
+            finally
+                sqlite3_finalize(stmt);
+            end;
+            // ---- КОНЕЦ НОВОГО БЛОКА ----
+
             // fetch links
             if not check_DB_error(sqlite3_prepare_v2(db, 'SELECT l.id, l.start_point_id, l.end_point_id, l.one_way, e.action_data, e.weight FROM link l LEFT JOIN extra e ON l.id = e.link_id', -1,
                 stmt, nil)) then
@@ -559,6 +590,8 @@ begin
             finally
                 sqlite3_finalize(stmt);
             end;
+
+
 
         except
             on E: Exception do
