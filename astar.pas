@@ -6,7 +6,7 @@ uses Sysutils, Classes, uConstants;
 
 const
     SQLiteDLL = 'sqlite3.dll';
-    FullDbPath = 'C:\la_db\new.db3';
+//    FullDbPath = 'C:\la_db\new.db3';
 function sqlite3_open(filename: PAnsiChar; var db: Pointer): int32; cdecl; external SQLiteDLL;
 function sqlite3_close(db: Pointer): int32; cdecl; external SQLiteDLL;
 function sqlite3_prepare_v2(db: Pointer; zSql: PAnsiChar; nByte: int32; var ppStmt: Pointer; pzTail: Pointer): int32; cdecl; external SQLiteDLL;
@@ -36,7 +36,7 @@ type
         X, Y, Z: int32;
         Name: string;
         Links: array of TLink;
-        Category: string;
+        Category, Description: string;
 
         function DistanceTo(const Other: TPoint3D): Double; overload;
         function DistanceTo(const TargetX, TargetY, TargetZ: int32): Double; overload;
@@ -67,6 +67,7 @@ type
 var
     graph_points: array of TPoint3D;
     graph_points_count: int32;
+    FullDbPath: string;
 procedure Log(const Msg: string; const OID: int32 = 0);
 function DoAStar(var steps: TSteps; start_point, end_point: TPoint3D): TPathInfo;
 function FindNearestPoint(const p: TPoint3D): int32;
@@ -92,7 +93,7 @@ end;
 procedure TStep.AssignStr(str: string; data0: int32);
 begin
     Self.act := actStrFromDLL;
-    self.str:=str;
+    self.str := str;
     Self.data0 := data0;
     Self.data1 := 0;
     Self.data2 := 0;
@@ -512,7 +513,6 @@ begin
                 sqlite3_finalize(stmt);
             end;
 
-
             // ---- ДОБАВЛЯЕМ ЭТОТ БЛОК ----
             // Загружаем категории и описания из point_extra
             if not check_DB_error(sqlite3_prepare_v2(db, 'SELECT pointId, catName, pointDescr FROM point_extra', -1, stmt, nil)) then
@@ -532,9 +532,12 @@ begin
                             graph_points[j].Category := UTF8ToString(pText);
 
                         // Читаем описание и сразу добавляем в скобках к имени
+                       { pText := sqlite3_column_text(stmt, 2);
+                        if pText <> nil then
+                            graph_points[j].Name := graph_points[j].Name + ' (' + UTF8ToString(pText) + ')';}
                         pText := sqlite3_column_text(stmt, 2);
                         if pText <> nil then
-                            graph_points[j].Name := graph_points[j].Name + ' (' + UTF8ToString(pText) + ')';
+                            graph_points[j].Description := UTF8ToString(pText);
                     end;
                 end;
             finally
@@ -591,8 +594,6 @@ begin
                 sqlite3_finalize(stmt);
             end;
 
-
-
         except
             on E: Exception do
                 Log('error while loading graph: ' + E.Message)
@@ -611,10 +612,15 @@ begin
 end;
 
 initialization
+    FullDbPath := 'C:\la_db\new.db3';
+
+    // Если по жесткому пути нет, ищем рядом с DLL
+    if not FileExists(FullDbPath) then
+        FullDbPath := ExtractFilePath(GetModuleName(HInstance)) + 'new.db3';
 
     if FileExists(FullDbPath) then
     begin
-        InitPathfinder(PAnsiChar(AnsiString(FullDbPath)));
+        InitPathfinder(FullDbPath);
     end
     else
     begin

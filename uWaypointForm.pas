@@ -345,7 +345,11 @@ begin
                 begin
                     Result := CompareText(L.Category, R.Category);
                     if Result = 0 then
-                        Result := CompareText(L.Name, R.Name);
+                    begin
+                        Result := CompareText(L.Description, R.Description);
+                        if Result = 0 then
+                            Result := CompareText(L.Name, R.Name);
+                    end;
                 end
                 else if L.Category <> '' then
                     Result := -1
@@ -385,7 +389,10 @@ begin
                         Item.Data := nil;
                     end;
                     Item := lvWaypoints.Items.Add;
-                    Item.Caption := P.Name;
+                   if P.Description <> '' then
+                        Item.Caption := P.Name + ' (' + P.Description + ')'
+                    else
+                        Item.Caption := P.Name;
                     Item.Data := Pointer(P.ID);
                 end
                 else
@@ -399,7 +406,10 @@ begin
                         Item.Data := nil;
                     end;
                     Item := lvWaypoints.Items.Add;
-                    Item.Caption := P.Name;
+                  if P.Description <> '' then
+                        Item.Caption := P.Name + ' (' + P.Description + ')'
+                    else
+                        Item.Caption := P.Name;
                     Item.Data := Pointer(P.ID);
                 end;
             end;
@@ -418,6 +428,7 @@ var
 begin
     FFormParams := TDictionary<string, Variant>.Create;
     Self.Icon.Handle := LoadIcon(HInstance, 'MAINICON');
+   Self.Caption := Self.Caption + ' (' + FullDbPath + ')'; // <-- днаюбкемн
     ApplyCarbonStyle;
     FillPoints;
 

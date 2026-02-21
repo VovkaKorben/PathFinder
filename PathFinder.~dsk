@@ -82,9 +82,9 @@ EditViewName=E:\share\pf_v3\PathFinder.dpr
 [View1]
 CustomEditViewType=TEditView
 Module=E:\share\pf_v3\astar.pas
-CursorX=1
-CursorY=614
-TopLine=598
+CursorX=11
+CursorY=539
+TopLine=473
 LeftCol=1
 Elisions=
 Bookmarks=
@@ -93,9 +93,9 @@ EditViewName=E:\share\pf_v3\astar.pas
 [View2]
 CustomEditViewType=TEditView
 Module=E:\share\pf_v3\uWaypointForm.pas
-CursorX=53
-CursorY=448
-TopLine=424
+CursorX=17
+CursorY=321
+TopLine=309
 LeftCol=1
 Elisions=
 Bookmarks=
@@ -306,11 +306,6 @@ LRDockWidth=2745
 Dockable=1
 StayOnTop=0
 SplitPos=146
-
-[PropInspDesignerSelection]
-ArrangeBy=Name
-SelectedItem=Action,
-ExpandedItems=Anchors=0,BorderIcons=0,Constraints=0,Font=0
 
 [frmDesignPreview]
 PercentageSizes=1
