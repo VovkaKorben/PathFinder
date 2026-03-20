@@ -15,8 +15,8 @@ File_12=TSourceModule,'C:\LA_FILES\!скрипты наброски\sqlite3_test
 
 [Modules]
 Module0=E:\share\pf_v3\uWaypointForm.pas
-Module1=E:\share\pf_v3\astar.pas
-Module2=E:\share\pf_v3\PathFinder.dproj
+Module1=E:\share\pf_v3\PathFinder.dproj
+Module2=E:\share\pf_v3\astar.pas
 Count=3
 EditWindowCount=1
 
@@ -25,13 +25,13 @@ ModuleType=TSourceModule
 FormState=1
 FormOnTop=0
 
+[E:\share\pf_v3\PathFinder.dproj]
+ModuleType=TBaseProject
+
 [E:\share\pf_v3\astar.pas]
 ModuleType=TSourceModule
 FormState=0
 FormOnTop=0
-
-[E:\share\pf_v3\PathFinder.dproj]
-ModuleType=TBaseProject
 
 [EditWindow0]
 ViewCount=3
@@ -93,8 +93,8 @@ EditViewName=E:\share\pf_v3\astar.pas
 [View2]
 CustomEditViewType=TEditView
 Module=E:\share\pf_v3\uWaypointForm.pas
-CursorX=53
-CursorY=448
+CursorX=69
+CursorY=456
 TopLine=424
 LeftCol=1
 Elisions=
@@ -220,11 +220,11 @@ State=0
 Left=0
 Top=0
 Width=2000
-Height=8229
+Height=8733
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=2000
-ClientHeight=8229
+ClientHeight=8733
 TBDockHeight=4886
 LRDockWidth=5307
 Dockable=1
@@ -237,7 +237,7 @@ Visible=0
 Docked=1
 State=0
 Left=-263
-Top=-159
+Top=-106
 Width=1849
 Height=3143
 MaxLeft=-1
@@ -307,11 +307,6 @@ Dockable=1
 StayOnTop=0
 SplitPos=146
 
-[PropInspDesignerSelection]
-ArrangeBy=Name
-SelectedItem=Action,
-ExpandedItems=Anchors=0,BorderIcons=0,Constraints=0,Font=0
-
 [frmDesignPreview]
 PercentageSizes=1
 Create=1
@@ -321,11 +316,11 @@ State=0
 Left=0
 Top=0
 Width=2000
-Height=8229
+Height=8733
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=2000
-ClientHeight=8229
+ClientHeight=8733
 TBDockHeight=5962
 LRDockWidth=2510
 Dockable=1
@@ -337,8 +332,8 @@ Create=1
 Visible=0
 Docked=1
 State=0
-Left=-1419
-Top=-71
+Left=-1536
+Top=-106
 Width=2844
 Height=6200
 MaxLeft=-1
@@ -357,7 +352,7 @@ Visible=0
 Docked=1
 State=0
 Left=-1536
-Top=237
+Top=-83
 Width=276
 Height=362
 MaxLeft=-1
@@ -461,11 +456,11 @@ State=0
 Left=0
 Top=0
 Width=2339
-Height=1152
+Height=1219
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=2339
-ClientHeight=1152
+ClientHeight=1219
 TBDockHeight=2314
 LRDockWidth=2823
 Dockable=1
@@ -526,11 +521,11 @@ State=0
 Left=0
 Top=0
 Width=2000
-Height=8229
+Height=8733
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=2000
-ClientHeight=8229
+ClientHeight=8733
 TBDockHeight=4886
 LRDockWidth=7151
 Dockable=1
@@ -542,8 +537,8 @@ Create=1
 Visible=0
 Docked=1
 State=0
-Left=370
-Top=837
+Left=0
+Top=0
 Width=2854
 Height=3210
 MaxLeft=-1
@@ -711,8 +706,8 @@ Create=1
 Visible=0
 Docked=1
 State=0
-Left=1536
-Top=453
+Left=0
+Top=0
 Width=3823
 Height=5467
 MaxLeft=-1
