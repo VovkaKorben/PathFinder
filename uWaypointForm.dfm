@@ -32,8 +32,8 @@ object WaypointForm: TWaypointForm
       395
       435)
     object lvWaypoints: TListView
-      Left = 16
-      Top = 20
+      Left = 20
+      Top = 23
       Width = 365
       Height = 401
       Anchors = [akLeft, akTop, akRight, akBottom]

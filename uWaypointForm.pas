@@ -1,3 +1,4 @@
+// https://github.com/VovkaKorben/PathFinder.git
 unit uWaypointForm;
 
 interface
@@ -8,9 +9,7 @@ uses
     System.Generics.Collections, uPathfinder, System.IniFiles, System.Generics.Defaults,
     Vcl.Buttons, astar,
     Vcl.Themes, Vcl.Styles, Vcl.ExtCtrls, System.Variants,
-    jpeg
-
-    ;
+    Vcl.Imaging.jpeg;
 
 type
     TMapLoadThread = class(TThread)
@@ -18,7 +17,7 @@ type
         FX, FY: Integer;
         FResultBmp: TBitmap;
         FPointName: string;
-        FOnComplete: TProc<TBitmap>;
+       FOnComplete: TProc<TBitmap, TThread>;
     protected
         procedure Execute; override;
     public
@@ -89,7 +88,8 @@ implementation
 constructor TMapLoadThread.Create(AX, AY: Integer; const AName: string; ADone: TProc<TBitmap>);
 begin
     inherited Create(False);
-    FreeOnTerminate := True;
+
+    FreeOnTerminate := False;
     FX := AX;
     FY := AY;
     FPointName := AName;
@@ -520,16 +520,15 @@ end;
 
 procedure TWaypointForm.FormDestroy(Sender: TObject);
 begin
-    // Останавливаем поток, если он еще работает
-    if Assigned(FMapThread) then
+  if Assigned(FMapThread) then
     begin
         FMapThread.Terminate;
-        FMapThread.WaitFor; // Ждем фактического завершения перед очисткой ресурсов
+        FMapThread.WaitFor;
+        FMapThread.Free;
     end;
 
-    // Освобождаем ресурсы
     if Assigned(FMapBmp) then
-        FMapBmp.Free;
+        FreeAndNil(FMapBmp);
 
     FFormParams.Free;
 end;
@@ -672,18 +671,27 @@ begin
             frameContainer.Controls[i].Visible := (frameContainer.Controls[i].Tag = scenario_index);
 
     if Assigned(FMapThread) then
-        FMapThread.Terminate; // Отменяем старую загрузку
+    begin
+        FMapThread.Terminate;
+        FMapThread.WaitFor;
+        FreeAndNil(FMapThread);
+    end;
+
     if (Item <> nil) and (Item.Data <> nil) and (uint32(Item.Data) < $80000000) then
     begin
         P := graph_points[uint32(Item.Data)];
 
         FMapThread := TMapLoadThread.Create(Round(P.X), Round(P.Y), P.Name,
-            procedure(ABmp: TBitmap)
+            procedure(ABmp: TBitmap; Sender: TThread)
             begin
+                // Проверяем, что это всё еще тот самый поток, который мы ждем
+                if FMapThread <> Sender then
+                    Exit;
+
                 if not Assigned(FMapBmp) then
                     FMapBmp := TBitmap.Create;
                 FMapBmp.Assign(ABmp);
-                pbMap.Repaint; // Заставляем PaintBox перерисоваться
+                pbMap.Repaint;
             end);
     end;
 
