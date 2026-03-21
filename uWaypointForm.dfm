@@ -64,11 +64,18 @@ object WaypointForm: TWaypointForm
       DesignSize = (
         241
         229)
+      object pbMap: TPaintBox
+        Left = 28
+        Top = 139
+        Width = 209
+        Height = 45
+        OnPaint = pbMapPaint
+      end
       object Memo1: TMemo
         Left = 8
         Top = 8
         Width = 225
-        Height = 213
+        Height = 125
         Anchors = [akLeft, akTop, akRight, akBottom]
         Lines.Strings = (
           'Memo1')
@@ -77,8 +84,8 @@ object WaypointForm: TWaypointForm
     end
     object panClanbank: TPanel
       Tag = 2
-      Left = 120
-      Top = 76
+      Left = 128
+      Top = 283
       Width = 110
       Height = 141
       BevelOuter = bvNone
@@ -87,8 +94,8 @@ object WaypointForm: TWaypointForm
     end
     object Panel1: TPanel
       Tag = 3
-      Left = -9
-      Top = 115
+      Left = 12
+      Top = 295
       Width = 110
       Height = 141
       BevelOuter = bvNone
@@ -104,8 +111,8 @@ object WaypointForm: TWaypointForm
     end
     object pan7Signs: TPanel
       Tag = 1
-      Left = 3
-      Top = 15
+      Left = 7
+      Top = 295
       Width = 185
       Height = 374
       Caption = 'pan7Signs'

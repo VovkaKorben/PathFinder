@@ -23,7 +23,7 @@ EditWindowCount=1
 [E:\share\pf_v3\uWaypointForm.pas]
 ModuleType=TSourceModule
 FormState=1
-FormOnTop=0
+FormOnTop=1
 
 [E:\share\pf_v3\PathFinder.dproj]
 ModuleType=TBaseProject
@@ -55,9 +55,9 @@ ClientHeight=8705
 DockedToMainForm=1
 BorlandEditorCodeExplorer=BorlandEditorCodeExplorer@EditWindow0
 TopPanelSize=0
-LeftPanelSize=2745
+LeftPanelSize=2198
 LeftPanelClients=PropertyInspector,DockSite3
-LeftPanelData=00000800010200000000101300000000000002E01A0000000000000100000000800B00001100000050726F7065727479496E73706563746F7201000000001013000009000000446F636B5369746533FFFFFFFF
+LeftPanelData=00000800010200000000430F00000000000002E01A0000000000000100000000830600001100000050726F7065727479496E73706563746F720100000000430F000009000000446F636B5369746533FFFFFFFF
 RightPanelSize=2000
 RightPanelClients=DockSite2,DockSite4
 RightPanelData=0000080001010100000009000000446F636B53697465341E0F00000000000001D0070000000000000100000000E01A000009000000446F636B5369746532FFFFFFFF
@@ -93,13 +93,13 @@ EditViewName=E:\share\pf_v3\astar.pas
 [View2]
 CustomEditViewType=TEditView
 Module=E:\share\pf_v3\uWaypointForm.pas
-CursorX=69
-CursorY=456
-TopLine=424
+CursorX=9
+CursorY=674
+TopLine=632
 LeftCol=1
 Elisions=
 Bookmarks=
-EditViewName=E:\share\pf_v3\uWaypointForm.pas
+EditViewName=Borland.FormDesignerView
 
 [Watches]
 Count=0
@@ -236,7 +236,7 @@ Create=1
 Visible=0
 Docked=1
 State=0
-Left=-263
+Left=-211
 Top=-106
 Width=1849
 Height=3143
@@ -295,17 +295,22 @@ Docked=1
 State=0
 Left=0
 Top=23
-Width=1635
+Width=917
 Height=6857
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=1635
+ClientWidth=917
 ClientHeight=6857
 TBDockHeight=6857
-LRDockWidth=2745
+LRDockWidth=2198
 Dockable=1
 StayOnTop=0
-SplitPos=146
+SplitPos=82
+
+[PropInspDesignerSelection]
+ArrangeBy=Name
+SelectedItem=Action,
+ExpandedItems=Anchors=0,BorderIcons=0,Constraints=0
 
 [frmDesignPreview]
 PercentageSizes=1
@@ -584,11 +589,11 @@ Docked=1
 State=0
 Left=0
 Top=0
-Width=1089
+Width=1260
 Height=6857
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=1089
+ClientWidth=1260
 ClientHeight=6857
 TBDockHeight=3676
 LRDockWidth=1896
@@ -754,13 +759,13 @@ Create=1
 Visible=1
 Docked=1
 State=0
-Left=318
+Left=180
 Top=23
-Width=1089
+Width=1260
 Height=6857
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=1089
+ClientWidth=1260
 ClientHeight=6857
 TBDockHeight=6857
 LRDockWidth=2161

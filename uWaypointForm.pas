@@ -7,9 +7,25 @@ uses
     Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.StdCtrls,
     System.Generics.Collections, uPathfinder, System.IniFiles, System.Generics.Defaults,
     Vcl.Buttons, astar,
-    Vcl.Themes, Vcl.Styles, Vcl.ExtCtrls, System.Variants;
+    Vcl.Themes, Vcl.Styles, Vcl.ExtCtrls, System.Variants,
+    jpeg
+
+    ;
 
 type
+    TMapLoadThread = class(TThread)
+    private
+        FX, FY: Integer;
+        FResultBmp: TBitmap;
+        FPointName: string;
+        FOnComplete: TProc<TBitmap>;
+    protected
+        procedure Execute; override;
+    public
+        constructor Create(AX, AY: Integer; const AName: string; ADone: TProc<TBitmap>);
+        destructor Destroy; override;
+    end;
+
     TWaypointForm = class(TForm)
         GroupBox1: TGroupBox;
         lvWaypoints: TListView;
@@ -28,7 +44,7 @@ type
         cbSeal1: TCheckBox;
         cbSeal2: TCheckBox;
         cbSeal3: TCheckBox;
-
+        pbMap: TPaintBox;
         procedure FormCreate(Sender: TObject);
         procedure lvWaypointsDblClick(Sender: TObject);
         procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -41,7 +57,10 @@ type
         procedure FillPoints;
         //        procedure ExtractParamsToContext();
         procedure FormDestroy(Sender: TObject);
+        procedure pbMapPaint(Sender: TObject);
     private
+        FMapThread: TMapLoadThread;
+        FMapBmp: TBitmap;
         FFormParams: TDictionary<string, Variant>;
         procedure SyncUI(ALoadToUI: Boolean);
         procedure LoadSettingsFromIni;
@@ -66,6 +85,57 @@ implementation
 
 {$R *.dfm}
 // 1. Загрузка из INI в локальный словарь
+
+constructor TMapLoadThread.Create(AX, AY: Integer; const AName: string; ADone: TProc<TBitmap>);
+begin
+    inherited Create(False);
+    FreeOnTerminate := True;
+    FX := AX;
+    FY := AY;
+    FPointName := AName;
+    FOnComplete := ADone;
+    FResultBmp := TBitmap.Create;
+end;
+
+destructor TMapLoadThread.Destroy;
+begin
+    FResultBmp.Free;
+    inherited;
+end;
+
+procedure TMapLoadThread.Execute;
+var
+    Jpg: TJPEGImage;
+    FileName: string;
+    MapX, MapY: Integer;
+begin
+    // Твоя формула трансформации
+    MapX := (FX div 32768) + 20;
+    MapY := (FY div 32768) + 18;
+    FileName := ExtractFilePath(GetModuleName(HInstance)) + Format('Maps\%d_%d.jpg', [MapX, MapY]);
+
+    if FileExists(FileName) then
+    begin
+        Jpg := TJPEGImage.Create;
+        try
+            Jpg.LoadFromFile(FileName);
+            if Terminated then
+                Exit;
+
+            FResultBmp.Assign(Jpg);
+            // Тут можно сразу нарисовать маркер точки на FResultBmp,
+            // если знать локальные координаты внутри этого квадрата.
+        finally
+            Jpg.Free;
+        end;
+    end;
+
+    if not Terminated then
+        TThread.Queue(nil, procedure
+            begin
+                FOnComplete(FResultBmp);
+            end);
+end;
 
 procedure TWaypointForm.LoadSettingsFromIni;
 var
@@ -389,7 +459,7 @@ begin
                         Item.Data := nil;
                     end;
                     Item := lvWaypoints.Items.Add;
-                   if P.Description <> '' then
+                    if P.Description <> '' then
                         Item.Caption := P.Name + ' (' + P.Description + ')'
                     else
                         Item.Caption := P.Name;
@@ -406,7 +476,7 @@ begin
                         Item.Data := nil;
                     end;
                     Item := lvWaypoints.Items.Add;
-                  if P.Description <> '' then
+                    if P.Description <> '' then
                         Item.Caption := P.Name + ' (' + P.Description + ')'
                     else
                         Item.Caption := P.Name;
@@ -428,7 +498,7 @@ var
 begin
     FFormParams := TDictionary<string, Variant>.Create;
     Self.Icon.Handle := LoadIcon(HInstance, 'MAINICON');
-   Self.Caption := Self.Caption + ' (' + FullDbPath + ')'; // <-- ДОБАВЛЕНО
+    Self.Caption := Self.Caption + ' (' + FullDbPath + ')'; // <-- ДОБАВЛЕНО
     ApplyCarbonStyle;
     FillPoints;
 
@@ -450,6 +520,17 @@ end;
 
 procedure TWaypointForm.FormDestroy(Sender: TObject);
 begin
+    // Останавливаем поток, если он еще работает
+    if Assigned(FMapThread) then
+    begin
+        FMapThread.Terminate;
+        FMapThread.WaitFor; // Ждем фактического завершения перед очисткой ресурсов
+    end;
+
+    // Освобождаем ресурсы
+    if Assigned(FMapBmp) then
+        FMapBmp.Free;
+
     FFormParams.Free;
 end;
 
@@ -570,7 +651,7 @@ var
     PointData, scenario_index, i: Integer;
     steps: TSteps;
     pi: TPathInfo;
-
+    P: TPoint3D;
 begin
     btOk.Enabled := False;
     if (not Selected) then
@@ -589,6 +670,22 @@ begin
     for i := 0 to frameContainer.ControlCount - 1 do
         if frameContainer.Controls[i] is TPanel then
             frameContainer.Controls[i].Visible := (frameContainer.Controls[i].Tag = scenario_index);
+
+    if Assigned(FMapThread) then
+        FMapThread.Terminate; // Отменяем старую загрузку
+    if (Item <> nil) and (Item.Data <> nil) and (uint32(Item.Data) < $80000000) then
+    begin
+        P := graph_points[uint32(Item.Data)];
+
+        FMapThread := TMapLoadThread.Create(Round(P.X), Round(P.Y), P.Name,
+            procedure(ABmp: TBitmap)
+            begin
+                if not Assigned(FMapBmp) then
+                    FMapBmp := TBitmap.Create;
+                FMapBmp.Assign(ABmp);
+                pbMap.Repaint; // Заставляем PaintBox перерисоваться
+            end);
+    end;
 
     //    if False then // temporary disable
     if scenario_index = 0 then
@@ -628,6 +725,19 @@ begin
             end;
         end;
 
+end;
+
+procedure TWaypointForm.pbMapPaint(Sender: TObject);
+begin
+    if Assigned(FMapBmp) and (not FMapBmp.Empty) then
+        pbMap.Canvas.Draw(0, 0, FMapBmp)
+    else
+    begin
+        pbMap.Canvas.Brush.Color := clBlack;
+        pbMap.Canvas.FillRect(pbMap.ClientRect);
+        pbMap.Canvas.Font.Color := clGray;
+        pbMap.Canvas.TextOut(10, 10, 'Map not found');
+    end;
 end;
 
 procedure TWaypointForm.RefreshList;
