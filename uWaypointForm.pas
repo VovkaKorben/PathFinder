@@ -1,4 +1,3 @@
-// https://github.com/VovkaKorben/PathFinder.git
 unit uWaypointForm;
 
 interface
@@ -219,7 +218,7 @@ begin
         begin
             if graph_points[j].ID = -1 then
                 Continue;
-            if graph_points[j].Name <> '' then
+            if trim(graph_points[j].Name) <> '' then
                 SortedPoints.Add(graph_points[j]);
         end;
 
@@ -248,7 +247,7 @@ begin
         try
             lvWaypoints.Items.Clear;
 
-            Item := lvWaypoints.Items.Add;
+           Item := lvWaypoints.Items.Add;
             Item.Caption := '***';
             Item.Data := nil;
 
@@ -294,7 +293,7 @@ begin
                     if P.Description <> '' then
                         Item.Caption := P.Name + ' (' + P.Description + ')'
                     else
-                        Item.Caption := format('%s #%d',[P.Name,p.id]);
+                        Item.Caption := format('%s',[P.Name,p.id]);
                     Item.Data := Pointer(P.ID);
                 end;
             end;
