@@ -12,18 +12,6 @@ uses
     Vcl.Imaging.jpeg;
 
 type
-    TMapLoadThread = class(TThread)
-    private
-        FX, FY: Integer;
-        FResultBmp: TBitmap;
-        FPointName: string;
-       FOnComplete: TProc<TBitmap, TThread>;
-    protected
-        procedure Execute; override;
-    public
-        constructor Create(AX, AY: Integer; const AName: string; ADone: TProc<TBitmap>);
-        destructor Destroy; override;
-    end;
 
     TWaypointForm = class(TForm)
         GroupBox1: TGroupBox;
@@ -43,7 +31,6 @@ type
         cbSeal1: TCheckBox;
         cbSeal2: TCheckBox;
         cbSeal3: TCheckBox;
-        pbMap: TPaintBox;
         procedure FormCreate(Sender: TObject);
         procedure lvWaypointsDblClick(Sender: TObject);
         procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -56,10 +43,7 @@ type
         procedure FillPoints;
         //        procedure ExtractParamsToContext();
         procedure FormDestroy(Sender: TObject);
-        procedure pbMapPaint(Sender: TObject);
     private
-        FMapThread: TMapLoadThread;
-        FMapBmp: TBitmap;
         FFormParams: TDictionary<string, Variant>;
         procedure SyncUI(ALoadToUI: Boolean);
         procedure LoadSettingsFromIni;
@@ -78,64 +62,11 @@ var
 
     // Наш реестр «умных» действий
 const
-    ActionCaptions: array[0..3] of string = ('paMove', 'Seven Signs', 'paClanBank', 'Test');
+    ActionCaptions: array[0..2] of string = ('paMove', 'Seven Signs', 'Clan Warehouse');
 
 implementation
 
 {$R *.dfm}
-// 1. Загрузка из INI в локальный словарь
-
-constructor TMapLoadThread.Create(AX, AY: Integer; const AName: string; ADone: TProc<TBitmap>);
-begin
-    inherited Create(False);
-
-    FreeOnTerminate := False;
-    FX := AX;
-    FY := AY;
-    FPointName := AName;
-    FOnComplete := ADone;
-    FResultBmp := TBitmap.Create;
-end;
-
-destructor TMapLoadThread.Destroy;
-begin
-    FResultBmp.Free;
-    inherited;
-end;
-
-procedure TMapLoadThread.Execute;
-var
-    Jpg: TJPEGImage;
-    FileName: string;
-    MapX, MapY: Integer;
-begin
-    // Твоя формула трансформации
-    MapX := (FX div 32768) + 20;
-    MapY := (FY div 32768) + 18;
-    FileName := ExtractFilePath(GetModuleName(HInstance)) + Format('Maps\%d_%d.jpg', [MapX, MapY]);
-
-    if FileExists(FileName) then
-    begin
-        Jpg := TJPEGImage.Create;
-        try
-            Jpg.LoadFromFile(FileName);
-            if Terminated then
-                Exit;
-
-            FResultBmp.Assign(Jpg);
-            // Тут можно сразу нарисовать маркер точки на FResultBmp,
-            // если знать локальные координаты внутри этого квадрата.
-        finally
-            Jpg.Free;
-        end;
-    end;
-
-    if not Terminated then
-        TThread.Queue(nil, procedure
-            begin
-                FOnComplete(FResultBmp);
-            end);
-end;
 
 procedure TWaypointForm.LoadSettingsFromIni;
 var
@@ -251,47 +182,6 @@ begin
     end;
 end;
 
-{
-procedure TWaypointForm.ExtractParamsToContext();
-var
-i, j: Integer;
-PanelCtrl: TControl;
-SubCtrl: TControl;
-begin
-if ctx = nil then
-Exit;
-
-// Бежим по элементам frameContainer
-for i := 0 to frameContainer.ControlCount - 1 do
-begin
-PanelCtrl := frameContainer.Controls[i];
-
-// Нас интересуют только панели (panMove, pan7Signs и т.д.) [cite: 4, 6]
-if PanelCtrl is TPanel then
-begin
- // Заходим внутрь панели
- for j := 0 to TPanel(PanelCtrl).ControlCount - 1 do
- begin
-     SubCtrl := TPanel(PanelCtrl).Controls[j];
-
-     // Игнорируем TMemo по твоему приказу
-     if SubCtrl is TMemo then
-         Continue;
-
-     // Сохраняем состояние в зависимости от типа компонента
-     if SubCtrl is TCheckBox then
-         ctx.Params.AddOrSetValue(SubCtrl.Name, TCheckBox(SubCtrl).Checked) //
-     else if SubCtrl is TRadioButton then
-         ctx.Params.AddOrSetValue(SubCtrl.Name, TRadioButton(SubCtrl).Checked)
-     else if SubCtrl is TComboBox then
-         ctx.Params.AddOrSetValue(SubCtrl.Name, TComboBox(SubCtrl).ItemIndex)
-     else if SubCtrl is TEdit then
-         ctx.Params.AddOrSetValue(SubCtrl.Name, TEdit(SubCtrl).Text);
- end;
-end;
-end;
-end;        }
-
 procedure ApplyCarbonStyle;
 begin
     try
@@ -311,83 +201,8 @@ procedure TWaypointForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
     SyncUI(False);
     SaveSettingsToIni; //  Запоминаем в INI
-    { Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
-     try
-         Ini.WriteInteger('Window', 'Left', Self.Left);
-         Ini.WriteInteger('Window', 'Top', Self.Top);
-         Ini.WriteInteger('Window', 'Width', Self.Width);
-         Ini.WriteInteger('Window', 'Height', Self.Height);
-     finally
-         Ini.Free;
-     end;}
+
 end;
-{
-procedure TWaypointForm.FillPoints;
-
-var
-SortedPoints: TList<TPoint3D>;
-P: TPoint3D;
-Item: TListItem;
-CurrentChar, FirstChar: Char;
-j: int32;
-// c: uint32;
-begin
-
-SortedPoints := TList<TPoint3D>.Create;
-try
-for j := 0 to graph_points_count - 1 do
-begin
-if graph_points[j].ID = -1 then
-   Continue;
-if graph_points[j].Name <> '' then
-   SortedPoints.Add(graph_points[j]);
-end;
-
-SortedPoints.Sort(TComparer<TPoint3D>.Construct(
-function(const L, R: TPoint3D): Integer
-begin
-   Result := CompareText(L.Name, R.Name);
-end));
-
-lvWaypoints.Items.BeginUpdate;
-try
-lvWaypoints.Items.Clear;
-
-// add predefined actions (7 signs etc)
-Item := lvWaypoints.Items.Add;
-Item.Caption := '***';
-Item.Data := nil;
-
-for j := Low(ActionCaptions) + 1 to High(ActionCaptions) do
-begin
-   Item := lvWaypoints.Items.Add;
-   Item.Caption := ActionCaptions[j];
-   Item.Data := Pointer(uint32(j) or $80000000);
-end;
-
-// add standard points
-CurrentChar := #0;
-for P in SortedPoints do
-begin
-   FirstChar := UpCase(P.Name[1]);
-   if FirstChar <> CurrentChar then
-   begin
-       CurrentChar := FirstChar;
-       Item := lvWaypoints.Items.Add;
-       Item.Caption := CurrentChar;
-       Item.Data := nil;
-   end;
-   Item := lvWaypoints.Items.Add;
-   Item.Caption := P.Name;
-   Item.Data := Pointer(P.ID);
-end;
-finally
-lvWaypoints.Items.EndUpdate;
-end;
-finally
-SortedPoints.Free;
-end;
-end;        }
 
 procedure TWaypointForm.FillPoints;
 var
@@ -479,7 +294,7 @@ begin
                     if P.Description <> '' then
                         Item.Caption := P.Name + ' (' + P.Description + ')'
                     else
-                        Item.Caption := P.Name;
+                        Item.Caption := format('%s #%d',[P.Name,p.id]);
                     Item.Data := Pointer(P.ID);
                 end;
             end;
@@ -520,15 +335,6 @@ end;
 
 procedure TWaypointForm.FormDestroy(Sender: TObject);
 begin
-  if Assigned(FMapThread) then
-    begin
-        FMapThread.Terminate;
-        FMapThread.WaitFor;
-        FMapThread.Free;
-    end;
-
-    if Assigned(FMapBmp) then
-        FreeAndNil(FMapBmp);
 
     FFormParams.Free;
 end;
@@ -650,7 +456,6 @@ var
     PointData, scenario_index, i: Integer;
     steps: TSteps;
     pi: TPathInfo;
-    P: TPoint3D;
 begin
     btOk.Enabled := False;
     if (not Selected) then
@@ -670,32 +475,12 @@ begin
         if frameContainer.Controls[i] is TPanel then
             frameContainer.Controls[i].Visible := (frameContainer.Controls[i].Tag = scenario_index);
 
-    if Assigned(FMapThread) then
-    begin
-        FMapThread.Terminate;
-        FMapThread.WaitFor;
-        FreeAndNil(FMapThread);
-    end;
+    if not Selected or (Item.Data = nil) or (uint32(Item.Data) >= $80000000) then
+        Exit;
 
-    if (Item <> nil) and (Item.Data <> nil) and (uint32(Item.Data) < $80000000) then
-    begin
-        P := graph_points[uint32(Item.Data)];
+    //  P := graph_points[uint32(Item.Data)];
 
-        FMapThread := TMapLoadThread.Create(Round(P.X), Round(P.Y), P.Name,
-            procedure(ABmp: TBitmap; Sender: TThread)
-            begin
-                // Проверяем, что это всё еще тот самый поток, который мы ждем
-                if FMapThread <> Sender then
-                    Exit;
-
-                if not Assigned(FMapBmp) then
-                    FMapBmp := TBitmap.Create;
-                FMapBmp.Assign(ABmp);
-                pbMap.Repaint;
-            end);
-    end;
-
-    //    if False then // temporary disable
+      //    if False then // temporary disable
     if scenario_index = 0 then
         with Memo1.Lines do
         begin
@@ -733,19 +518,6 @@ begin
             end;
         end;
 
-end;
-
-procedure TWaypointForm.pbMapPaint(Sender: TObject);
-begin
-    if Assigned(FMapBmp) and (not FMapBmp.Empty) then
-        pbMap.Canvas.Draw(0, 0, FMapBmp)
-    else
-    begin
-        pbMap.Canvas.Brush.Color := clBlack;
-        pbMap.Canvas.FillRect(pbMap.ClientRect);
-        pbMap.Canvas.Font.Color := clGray;
-        pbMap.Canvas.TextOut(10, 10, 'Map not found');
-    end;
 end;
 
 procedure TWaypointForm.RefreshList;

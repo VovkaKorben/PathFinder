@@ -60,17 +60,11 @@ object WaypointForm: TWaypointForm
       Top = 48
       Width = 241
       Height = 229
+      BevelOuter = bvNone
       TabOrder = 1
       DesignSize = (
         241
         229)
-      object pbMap: TPaintBox
-        Left = 28
-        Top = 139
-        Width = 209
-        Height = 45
-        OnPaint = pbMapPaint
-      end
       object Memo1: TMemo
         Left = 8
         Top = 8
@@ -94,8 +88,8 @@ object WaypointForm: TWaypointForm
     end
     object Panel1: TPanel
       Tag = 3
-      Left = 12
-      Top = 295
+      Left = 47
+      Top = 303
       Width = 110
       Height = 141
       BevelOuter = bvNone
@@ -111,10 +105,11 @@ object WaypointForm: TWaypointForm
     end
     object pan7Signs: TPanel
       Tag = 1
-      Left = 7
-      Top = 295
+      Left = 147
+      Top = 299
       Width = 185
       Height = 374
+      BevelOuter = bvNone
       Caption = 'pan7Signs'
       TabOrder = 0
       object rbDawn: TRadioButton
