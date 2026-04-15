@@ -11,13 +11,16 @@ const
     MAX_DLG_BUFFER = 16384;
 
 type
-    TPredefinedAction = (paMove, pa7Signs, paClanBank, paTest);
+    TPredefinedAction = (paMove, pa7Signs, paClanBank, paUnstuck);
     TSegmentAction = (saStop, saMoveTo, saMoving, saTest, //
         sa7S_Init, sa7S_MoveToPriest, sa7S_GetDlg, sa7S_Echo, sa7S_Analyze, sa7S_DoReg, sa7S_Already, sa7S_Error, // 7 signs
-
-        saWH_Init, saWH_Move, saWH_GetDlg // warehouse
+        saWH_Init_1, saWH_Init_2, saWH_ItemGet, saWH_ItemLog, saWH_ItemPut, saWH_Move, // warehouse
+        saUnstuck
         );
-    //    TBufferState = (bsIdle, bsWaiting, bsReady);
+
+    TInventoryItem = record
+        id, oid, count: integer;
+    end;
 
     TPathContext = class
     private
@@ -25,6 +28,9 @@ type
 
         FRecv1, FRecv2, FRecv3: int32;
         FOutputBuffer: array[0..MAX_DLG_BUFFER] of AnsiChar;
+
+        FInventoryIndex: integer;
+        FInventory: array of TInventoryItem;
 
         FGoalID: uint32;
         FSegments: TArray<TSegmentAction>; // заполняется при выборе в окне действия
@@ -177,7 +183,7 @@ begin
     for i := Low(WAREHOUSE) to High(WAREHOUSE) do
     begin
 
-        D := CurrentPos.DistanceTo(PRIESTS[i].Pos); // Используем твой TPoint3D
+        D := CurrentPos.DistanceTo(WAREHOUSE[i].Pos); // Используем твой TPoint3D
         if D < MinDist then
         begin
             MinDist := D;
@@ -357,19 +363,65 @@ begin
 
                     DoAStar(FSteps, graph_points[StartPointID], graph_points[FGoalID]);
                 end;
-            saTest:
+            saUnstuck:
                 begin
-                    SetLength(FSteps, 1);
-                    FSteps[0].act := actDlgTextToDLL;
+                    SetLength(FSteps, 3);
+                    FSteps[0].AssignInt(actFaceControl, 0, 0, 0);
+                    FSteps[1].AssignInt(actSitStand, 1, 0, 0);
+                    FSteps[2].AssignStr('/unstuck', actSay);
                 end;
-            saWH_Init:
+            saWH_Init_1:
                 begin
                     tmp := FindNearestWH(StartPoint);
-                    SetLength(FSteps, 1);
-                    FSteps[0].AssignStr(//
-                        Format('WH: %s / %s', [WAREHOUSE[tmp].name, WAREHOUSE[tmp].Loc]) //
-                        );
+                    SetLength(FSteps, 5);
+                    FSteps[0].AssignInt(actFaceControl, 0, 0, 0);
+                    FSteps[1].AssignInt(actSitStand, 1, 0, 0);
+                    FSteps[2].AssignStr(Format('WH: %s / %s', [WAREHOUSE[tmp].name, WAREHOUSE[tmp].Loc]));
+                    FSteps[3].AssignStr(Format('Im at: %s', [StartPoint.ToString(false)]));
+                    FSteps[4].AssignInt(actGetInvCount, 0, 0);
+
                 end;
+
+            saWH_Init_2:
+                begin
+                    SetLength(FInventory, FRecv1);
+                    FInventoryIndex := 0;
+                    SetLength(FSteps, 1);
+                    FSteps[0].AssignStr(Format('Items count: %d ', [FRecv1]));
+                end;
+
+            saWH_ItemGet:
+                begin
+                    if FInventoryIndex < Length(FInventory) then
+                    begin
+                        SetLength(FSteps, 1);
+                        FSteps[0].AssignInt(actGetInvItem, FInventoryIndex, 0, 0);
+                    end
+                    else
+                        JumpTo(saWH_Move);
+                end;
+            saWH_ItemLog:
+                begin
+                    SetLength(FSteps, 1);
+                    FSteps[0].AssignStr(Format('Item [%d/%d], id: %d, cnt: %d, oid: %d', [FInventoryIndex + 1, Length(FInventory), FRecv1, FRecv2, FRecv3]));
+                end;
+            saWH_ItemPut:
+                begin
+                    FInventory[FInventoryIndex].id := FRecv1;
+                    FInventory[FInventoryIndex].count := FRecv2;
+                    FInventory[FInventoryIndex].oid := FRecv3;
+                    SetLength(FSteps, 1);
+
+                    Inc(FInventoryIndex);
+                    JumpTo(saWH_ItemGet);
+                end;
+
+            saWH_Move:
+                begin
+                    SetLength(FSteps, 1);
+                    FSteps[0].AssignStr('saWH_Move');
+                end;
+
             sa7S_Init:
                 begin
                     if Params.ContainsKey('rbDusk') and Params['rbDusk'] then
@@ -487,6 +539,7 @@ procedure TPathContext.GenerateScenario(PointData: uint32);
         FCurrentStep := 0;
         SetLength(FSteps, 0); // Сбрасываем микро-шаги
     end;
+
 begin
     FGoalID := PointData;
     if (FGoalID and $80000000) = 0 then
@@ -505,11 +558,15 @@ begin
 //                    FillScenario([sa7S_Init, sa7S_MoveToPriest, sa7S_GetDlg, sa7S_Echo, sa7S_Analyze, sa7S_DoReg]);
                     FillScenario([sa7S_Init, sa7S_MoveToPriest, sa7S_GetDlg, sa7S_Echo, sa7S_Analyze, sa7S_DoReg, sa7S_Already, sa7S_Error]);
                 end;
-
-            3: // Наш Test
+            2: // WH
                 begin
-                    FillScenario([saTest]);
-                    //    SetLength(FSegments, 1);                    FSegments[0] := saTest;
+                    //                    FillScenario([saWH_Init]);
+                    FillScenario([saWH_Init_1, saWH_Init_2, saWH_ItemGet, saWH_ItemLog, saWH_ItemPut, saWH_Move]);
+                    //, saWH_Init2, saWH_Move, saWH_GetDlg
+                end;
+            3: // unstuck
+                begin
+                    FillScenario([saUnstuck]);
                 end;
         end;
 

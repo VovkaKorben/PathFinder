@@ -89,7 +89,7 @@ object WaypointForm: TWaypointForm
     object Panel1: TPanel
       Tag = 3
       Left = 47
-      Top = 303
+      Top = 218
       Width = 110
       Height = 141
       BevelOuter = bvNone
@@ -98,9 +98,10 @@ object WaypointForm: TWaypointForm
       object Label1: TLabel
         Left = 16
         Top = 12
-        Width = 48
+        Width = 114
         Height = 13
-        Caption = 'test mode'
+        Caption = 'No parameters required'
+        WordWrap = True
       end
     end
     object pan7Signs: TPanel

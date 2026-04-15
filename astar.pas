@@ -6,7 +6,7 @@ uses Sysutils, Classes, uConstants;
 
 const
     SQLiteDLL = 'sqlite3.dll';
-//    FullDbPath = 'C:\la_db\new.db3';
+    //    FullDbPath = 'C:\la_db\new.db3';
 function sqlite3_open(filename: PAnsiChar; var db: Pointer): int32; cdecl; external SQLiteDLL;
 function sqlite3_close(db: Pointer): int32; cdecl; external SQLiteDLL;
 function sqlite3_prepare_v2(db: Pointer; zSql: PAnsiChar; nByte: int32; var ppStmt: Pointer; pzTail: Pointer): int32; cdecl; external SQLiteDLL;
@@ -51,7 +51,7 @@ type
         act, data0, data1, data2: int32;
         str: string;
         procedure AssignInt(act: int32; data0: int32 = 0; data1: int32 = 0; data2: int32 = 0);
-        procedure AssignStr(str: string; data0: int32 = 0);
+        procedure AssignStr(str: string; data0: int32 = actStrFromDLL);
     end;
 
     // procedure AssignFromPoint(const p: TPoint3D);    procedure AssignAction(const npc_id, a0, a1: int32);    procedure CopyTo(var aa, ax, ay, az: int32);
@@ -92,7 +92,7 @@ end;
 
 procedure TStep.AssignStr(str: string; data0: int32);
 begin
-    Self.act := actStrFromDLL;
+    Self.act := data0; // actStrFromDLL;
     self.str := str;
     Self.data0 := data0;
     Self.data1 := 0;

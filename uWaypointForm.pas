@@ -1,3 +1,4 @@
+// https://github.com/VovkaKorben/PathFinder.git
 unit uWaypointForm;
 
 interface
@@ -61,7 +62,7 @@ var
 
     // Наш реестр «умных» действий
 const
-    ActionCaptions: array[0..2] of string = ('paMove', 'Seven Signs', 'Clan Warehouse');
+    ActionCaptions: array[0..3] of string = ('paMove', 'Seven Signs', 'Clan Warehouse','Unstuck');
 
 implementation
 
