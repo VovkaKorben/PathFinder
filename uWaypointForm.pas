@@ -13,7 +13,7 @@ uses
 
 type
 
-    TWaypointForm = class(TForm)
+    TWaypointForm = class ( TForm )
         GroupBox1: TGroupBox;
         lvWaypoints: TListView;
         frameContainer: TGroupBox;
@@ -31,21 +31,21 @@ type
         cbSeal1: TCheckBox;
         cbSeal2: TCheckBox;
         cbSeal3: TCheckBox;
-        procedure FormCreate(Sender: TObject);
-        procedure lvWaypointsDblClick(Sender: TObject);
-        procedure lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
-        procedure btOkClick(Sender: TObject);
-        procedure lvWaypointsAdvancedCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage; var DefaultDraw: Boolean);
-        procedure FormShow(Sender: TObject);
-        procedure BitBtn1Click(Sender: TObject);
+        procedure FormCreate( Sender: TObject );
+        procedure lvWaypointsDblClick( Sender: TObject );
+        procedure lvWaypointsSelectItem( Sender: TObject; Item: TListItem; Selected: boolean );
+        procedure btOkClick( Sender: TObject );
+        procedure lvWaypointsAdvancedCustomDrawItem( Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage; var DefaultDraw: boolean );
+        procedure FormShow( Sender: TObject );
+        procedure BitBtn1Click( Sender: TObject );
         procedure RefreshList;
-        procedure FormClose(Sender: TObject; var Action: TCloseAction);
+        procedure FormClose( Sender: TObject; var Action: TCloseAction );
         procedure FillPoints;
         //        procedure ExtractParamsToContext();
-        procedure FormDestroy(Sender: TObject);
+        procedure FormDestroy( Sender: TObject );
     private
-        FFormParams: TDictionary<string, Variant>;
-        procedure SyncUI(ALoadToUI: Boolean);
+        FFormParams: TDictionary<string, variant>;
+        procedure SyncUI( ALoadToUI: boolean );
         procedure LoadSettingsFromIni;
         procedure SaveSettingsToIni;
         procedure ApplyParamsToContext;
@@ -55,14 +55,14 @@ type
 
     end;
 
-    TPredefinedAction = (paMove, pa7Signs, paClanBank);
+  //  TPredefinedAction = ( paMove, pa7Signs, paClanBank );
 
 var
     WaypointForm: TWaypointForm;
 
-    // Наш реестр «умных» действий
+    // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 const
-    ActionCaptions: array[0..3] of string = ('paMove', 'Seven Signs', 'Clan Warehouse','Unstuck');
+    ActionCaptions: array[0..3] of string = ( 'paMove', 'Seven Signs', 'Clan Warehouse', 'Unstuck' );
 
 implementation
 
@@ -74,108 +74,106 @@ var
     slKeys: TStringList;
     Key: string;
 begin
-    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+    Ini := TIniFile.Create( ExtractFilePath( GetModuleName( HInstance ) ) + 'settings.ini' );
     slKeys := TStringList.Create;
     try
         FFormParams.Clear;
-        // Читаем все ключи из секции настроек контролов
-        Ini.ReadSection('ControlSettings', slKeys);
+        // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        Ini.ReadSection( 'ControlSettings', slKeys );
         for Key in slKeys do
-            FFormParams.AddOrSetValue(Key, Ini.ReadString('ControlSettings', Key, ''));
+            FFormParams.AddOrSetValue( Key, Ini.ReadString( 'ControlSettings', Key, '' ) );
     finally
         slKeys.Free;
         Ini.Free;
     end;
 end;
 
-// 2. Сохранение из локального словаря в INI
+// 2. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ INI
 
 procedure TWaypointForm.SaveSettingsToIni;
 var
     Ini: TIniFile;
     Key: string;
 begin
-    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+    Ini := TIniFile.Create( ExtractFilePath( GetModuleName( HInstance ) ) + 'settings.ini' );
     try
-        // Сохраняем контролы
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         for Key in FFormParams.Keys do
-            Ini.WriteString('ControlSettings', Key, VarToStr(FFormParams[Key]));
+            Ini.WriteString( 'ControlSettings', Key, VarToStr( FFormParams [Key] ) );
 
-        // Сохраняем геометрию окна (перенесено из FormClose)
-        Ini.WriteInteger('Window', 'Left', Self.Left);
-        Ini.WriteInteger('Window', 'Top', Self.Top);
-        Ini.WriteInteger('Window', 'Width', Self.Width);
-        Ini.WriteInteger('Window', 'Height', Self.Height);
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ FormClose)
+        Ini.WriteInteger( 'Window', 'Left', Self.Left );
+        Ini.WriteInteger( 'Window', 'Top', Self.Top );
+        Ini.WriteInteger( 'Window', 'Width', Self.Width );
+        Ini.WriteInteger( 'Window', 'Height', Self.Height );
 
-        // Сохраняем последнюю цель (если она выбрана)
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
         if lvWaypoints.Selected <> nil then
-            Ini.WriteInteger('Settings', 'LastTarget', Integer(uint32(lvWaypoints.Selected.Data)));
+            Ini.WriteInteger( 'Settings', 'LastTarget', integer( uint32( lvWaypoints.Selected.Data ) ) );
 
     finally
         Ini.Free;
     end;
 end;
 
-// 3. Копирование черновика в основной контекст (Транзакция)
+// 3. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
 
 procedure TWaypointForm.ApplyParamsToContext;
 var
-    Pair: TPair<string, Variant>;
+    Pair: TPair<string, variant>;
 begin
     if ctx = nil then
         Exit;
 
-    ctx.Params.Clear; // Очищаем старое
+    ctx.Params.Clear;
     for Pair in FFormParams do
     begin
-        ctx.Params.Add(Pair.Key, Pair.Value); // Заливаем новое
+        ctx.Params.Add( Pair.Key, Pair.Value ); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     end;
 end;
 
-procedure TWaypointForm.SyncUI(ALoadToUI: Boolean);
+procedure TWaypointForm.SyncUI( ALoadToUI: boolean );
 var
-    i, j: Integer;
+    i, j: integer;
     PanelCtrl, SubCtrl: TControl;
-    Val: Variant;
+    Val: variant;
 begin
-    // Бежим по панелям во frameContainer
+    // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ frameContainer
     for i := 0 to frameContainer.ControlCount - 1 do
     begin
-        PanelCtrl := frameContainer.Controls[i];
+        PanelCtrl := frameContainer.Controls [i];
         if PanelCtrl is TPanel then
         begin
-            for j := 0 to TPanel(PanelCtrl).ControlCount - 1 do
+            for j := 0 to TPanel( PanelCtrl ).ControlCount - 1 do
             begin
-                SubCtrl := TPanel(PanelCtrl).Controls[j];
+                SubCtrl := TPanel( PanelCtrl ).Controls [j];
                 if SubCtrl is TMemo then
-                    Continue; // Мемо не трогаем
+                    Continue; // пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
                 if ALoadToUI then
                 begin
-                    // Из словаря -> на Экран [cite: 12]
-                    if FFormParams.TryGetValue(SubCtrl.Name, Val) then
+                    // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ -> пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ [cite: 12]
+                    if FFormParams.TryGetValue( SubCtrl.Name, Val ) then
                     begin
                         if SubCtrl is TCheckBox then
-                            TCheckBox(SubCtrl).Checked := Val
+                            TCheckBox( SubCtrl ).Checked := Val
                         else if SubCtrl is TRadioButton then
-                            TRadioButton(SubCtrl).Checked := Val
+                            TRadioButton( SubCtrl ).Checked := Val
                         else if SubCtrl is TComboBox then
-                            TComboBox(SubCtrl).ItemIndex := Val
+                            TComboBox( SubCtrl ).ItemIndex := Val
                         else if SubCtrl is TEdit then
-                            TEdit(SubCtrl).Text := Val;
+                            TEdit( SubCtrl ).Text := Val;
                     end;
-                end
-                else
-                begin
-                    // С Экрана -> в словарь [cite: 12, 5]
+                end else begin
+                    // пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ -> пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ [cite: 12, 5]
                     if SubCtrl is TCheckBox then
-                        FFormParams.AddOrSetValue(SubCtrl.Name, TCheckBox(SubCtrl).Checked)
+                        FFormParams.AddOrSetValue( SubCtrl.Name, TCheckBox( SubCtrl ).Checked )
                     else if SubCtrl is TRadioButton then
-                        FFormParams.AddOrSetValue(SubCtrl.Name, TRadioButton(SubCtrl).Checked)
+                        FFormParams.AddOrSetValue( SubCtrl.Name, TRadioButton( SubCtrl ).Checked )
                     else if SubCtrl is TComboBox then
-                        FFormParams.AddOrSetValue(SubCtrl.Name, TComboBox(SubCtrl).ItemIndex)
+                        FFormParams.AddOrSetValue( SubCtrl.Name, TComboBox( SubCtrl ).ItemIndex )
                     else if SubCtrl is TEdit then
-                        FFormParams.AddOrSetValue(SubCtrl.Name, TEdit(SubCtrl).Text);
+                        FFormParams.AddOrSetValue( SubCtrl.Name, TEdit( SubCtrl ).Text );
                 end;
             end;
         end;
@@ -187,20 +185,20 @@ begin
     try
         if TStyleManager.ActiveStyle.Name <> 'Carbon' then
         begin
-            if not TStyleManager.TrySetStyle('Carbon') then
+            if not TStyleManager.TrySetStyle( 'Carbon' ) then
             begin
-                // Если не вышло, можно оставить стандартный или выдать лог
+                // пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
             end;
         end;
     except
     end;
 end;
 
-procedure TWaypointForm.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TWaypointForm.FormClose( Sender: TObject; var Action: TCloseAction );
 //var    Ini: TIniFile;
 begin
-    SyncUI(False);
-    SaveSettingsToIni; //  Запоминаем в INI
+    SyncUI( false );
+    SaveSettingsToIni; //  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ INI
 
 end;
 
@@ -209,7 +207,7 @@ var
     SortedPoints: TList<TPoint3D>;
     P: TPoint3D;
     Item: TListItem;
-    CurrentChar, FirstChar: Char;
+    CurrentChar, FirstChar: char;
     CurrentCategory: string;
     j: int32;
 begin
@@ -217,46 +215,45 @@ begin
     try
         for j := 0 to graph_points_count - 1 do
         begin
-            if graph_points[j].ID = -1 then
+            if graph_points [j].ID = -1 then
                 Continue;
-            if trim(graph_points[j].Name) <> '' then
-                SortedPoints.Add(graph_points[j]);
+            if trim( graph_points [j].Name ) <> '' then
+                SortedPoints.Add( graph_points [j] );
         end;
 
-        SortedPoints.Sort(TComparer<TPoint3D>.Construct(
-            function(const L, R: TPoint3D): Integer
+        SortedPoints.Sort( TComparer<TPoint3D>.Construct(
+            function ( const L, R: TPoint3D ): integer
             begin
-                if (L.Category <> '') and (R.Category <> '') then
+                if ( L.Category <> '' ) and ( R.Category <> '' ) then
                 begin
-                    Result := CompareText(L.Category, R.Category);
+                    Result := CompareText( L.Category, R.Category );
                     if Result = 0 then
                     begin
-                        Result := CompareText(L.Description, R.Description);
+                        Result := CompareText( L.Description, R.Description );
                         if Result = 0 then
-                            Result := CompareText(L.Name, R.Name);
+                            Result := CompareText( L.Name, R.Name );
                     end;
-                end
-                else if L.Category <> '' then
+                end else if L.Category <> '' then
                     Result := -1
                 else if R.Category <> '' then
                     Result := 1
                 else
-                    Result := CompareText(L.Name, R.Name);
-            end));
+                    Result := CompareText( L.Name, R.Name );
+            end ) );
 
         lvWaypoints.Items.BeginUpdate;
         try
             lvWaypoints.Items.Clear;
 
-           Item := lvWaypoints.Items.Add;
+            Item := lvWaypoints.Items.Add;
             Item.Caption := '***';
             Item.Data := nil;
 
-            for j := Low(ActionCaptions) + 1 to High(ActionCaptions) do
+            for j := Low( ActionCaptions ) + 1 to High( ActionCaptions ) do
             begin
                 Item := lvWaypoints.Items.Add;
-                Item.Caption := ActionCaptions[j];
-                Item.Data := Pointer(uint32(j) or $80000000);
+                Item.Caption := ActionCaptions [j];
+                Item.Data := Pointer( uint32( j ) or $80000000 );
             end;
 
             CurrentChar := #0;
@@ -266,7 +263,7 @@ begin
             begin
                 if P.Category <> '' then
                 begin
-                    if CompareText(P.Category, CurrentCategory) <> 0 then
+                    if CompareText( P.Category, CurrentCategory ) <> 0 then
                     begin
                         CurrentCategory := P.Category;
                         Item := lvWaypoints.Items.Add;
@@ -278,11 +275,9 @@ begin
                         Item.Caption := P.Name + ' (' + P.Description + ')'
                     else
                         Item.Caption := P.Name;
-                    Item.Data := Pointer(P.ID);
-                end
-                else
-                begin
-                    FirstChar := UpCase(P.Name[1]);
+                    Item.Data := Pointer( P.ID );
+                end else begin
+                    FirstChar := UpCase( P.Name [1] );
                     if FirstChar <> CurrentChar then
                     begin
                         CurrentChar := FirstChar;
@@ -294,8 +289,8 @@ begin
                     if P.Description <> '' then
                         Item.Caption := P.Name + ' (' + P.Description + ')'
                     else
-                        Item.Caption := format('%s',[P.Name,p.id]);
-                    Item.Data := Pointer(P.ID);
+                        Item.Caption := format( '%s', [P.Name, p.id] );
+                    Item.Data := Pointer( P.ID );
                 end;
             end;
         finally
@@ -306,176 +301,173 @@ begin
     end;
 end;
 
-procedure TWaypointForm.FormCreate(Sender: TObject);
+procedure TWaypointForm.FormCreate( Sender: TObject );
 var
     i: int32;
     Pnl: TPanel;
 begin
-    FFormParams := TDictionary<string, Variant>.Create;
-    Self.Icon.Handle := LoadIcon(HInstance, 'MAINICON');
-    Self.Caption := Self.Caption + ' (' + FullDbPath + ')'; // <-- ДОБАВЛЕНО
+    FFormParams := TDictionary<string, variant>.Create;
+    Self.Icon.Handle := LoadIcon( HInstance, 'MAINICON' );
+    Self.Caption := Self.Caption + ' (' + FullDbPath + ')'; // <-- пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     ApplyCarbonStyle;
     FillPoints;
 
     for i := 0 to frameContainer.ControlCount - 1 do
-        if (frameContainer.Controls[i] is TPanel) then
+        if ( frameContainer.Controls [i] is TPanel ) then
         begin
-            Pnl := TPanel(frameContainer.Controls[i]);
+            Pnl := TPanel( frameContainer.Controls [i] );
 
-            Pnl.Visible := False;
+            Pnl.Visible := false;
             Pnl.Align := alClient;
             // Pnl.BevelOuter := bvNone;
-            Pnl.Caption := ''; // Обязательно очищаем, чтобы текст панели не лез поверх чекбоксов
+            Pnl.Caption := ''; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-            // ИСПРАВЛЕНИЕ ДЛЯ СТИЛЯ CARBON:
-            Pnl.ParentBackground := False; // Запрещаем панели "просвечивать" до самого GroupBox
-            Pnl.DoubleBuffered := True;
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ CARBON:
+            Pnl.ParentBackground := false; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ" пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ GroupBox
+            Pnl.DoubleBuffered := true;
         end;
 end;
 
-procedure TWaypointForm.FormDestroy(Sender: TObject);
+procedure TWaypointForm.FormDestroy( Sender: TObject );
 begin
 
     FFormParams.Free;
 end;
 
-// 2. Новая процедура FormShow - здесь магия восстановления
+// 2. пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ FormShow - пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-procedure TWaypointForm.FormShow(Sender: TObject);
+procedure TWaypointForm.FormShow( Sender: TObject );
 var
     Ini: TIniFile;
     // LastTarget: string;
     LastTargetID: uint32;
     Item: TListItem;
     // NearestID,
-    i: Integer;
+    i: integer;
     // P: TPoint3D;
 
     // Dist: Double;
 begin
-    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+    Ini := TIniFile.Create( ExtractFilePath( GetModuleName( HInstance ) ) + 'settings.ini' );
     try
-        // Восстанавливаем позицию и размер
-        Self.Left := Ini.ReadInteger('Window', 'Left', Self.Left);
-        Self.Top := Ini.ReadInteger('Window', 'Top', Self.Top);
-        Self.Width := Ini.ReadInteger('Window', 'Width', Self.Width);
-        Self.Height := Ini.ReadInteger('Window', 'Height', Self.Height);
-        LastTargetID := Cardinal(Ini.ReadInteger('Settings', 'LastTarget', 0));
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+        Self.Left := Ini.ReadInteger( 'Window', 'Left', Self.Left );
+        Self.Top  := Ini.ReadInteger( 'Window', 'Top', Self.Top );
+        Self.Width := Ini.ReadInteger( 'Window', 'Width', Self.Width );
+        Self.Height := Ini.ReadInteger( 'Window', 'Height', Self.Height );
+        LastTargetID := cardinal( Ini.ReadInteger( 'Settings', 'LastTarget', 0 ) );
     finally
         Ini.Free;
     end;
 
-    LoadSettingsFromIni; //  Загружаем из файла в словарь
-    SyncUI(True);
+    LoadSettingsFromIni; //  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    SyncUI( true );
 
     if LastTargetID <> 0 then
     begin
         for i := 0 to lvWaypoints.Items.Count - 1 do
         begin
-            Item := lvWaypoints.Items[i];
-            if (Item.Data <> nil) and (uint32(Item.Data) = LastTargetID) then
+            Item := lvWaypoints.Items [i];
+            if ( Item.Data <> nil ) and ( uint32( Item.Data ) = LastTargetID ) then
             begin
-                Item.Selected := True;
-                Item.Focused := True;
-                Item.MakeVisible(False); // Теперь точно прокрутит
-                lvWaypointsSelectItem(lvWaypoints, Item, True); // Теперь координаты уже переданы!
+                Item.Selected := true;
+                Item.Focused  := true;
+                Item.MakeVisible( false ); // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+                lvWaypointsSelectItem( lvWaypoints, Item, true ); // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ!
                 Break;
             end;
         end;
     end;
 end;
 
-procedure TWaypointForm.lvWaypointsAdvancedCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage; var DefaultDraw: Boolean);
+procedure TWaypointForm.lvWaypointsAdvancedCustomDrawItem( Sender: TCustomListView; Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage; var DefaultDraw: boolean );
 begin
     if Item.Data = nil then
     begin
-        Sender.Canvas.Brush.Color := StyleServices.GetStyleColor(scListView);
-        Sender.Canvas.FillRect(Item.DisplayRect(drBounds));
-        // Это заголовок алфавита
+        Sender.Canvas.Brush.Color := StyleServices.GetStyleColor( scListView );
+        Sender.Canvas.FillRect( Item.DisplayRect( drBounds ) );
+        // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         Sender.Canvas.Font.Color := $00BBFF;
         Sender.Canvas.Font.Style := [fsBold];
-        Sender.Canvas.Font.Size := 11;
-        Sender.Canvas.TextOut(Item.DisplayRect(drBounds).Left + 2, Item.DisplayRect(drBounds).Top - 2, Item.Caption);
+        Sender.Canvas.Font.Size  := 11;
+        Sender.Canvas.TextOut( Item.DisplayRect( drBounds ).Left + 2, Item.DisplayRect( drBounds ).Top - 2, Item.Caption );
 
-        // Говорим системе, что мы сами всё нарисовали
-        DefaultDraw := False;
-    end
-    else
-    begin
-        // Это обычная точка
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        DefaultDraw := false;
+    end else begin
+        // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         Sender.Canvas.Font.Color := clWindowText;
         Sender.Canvas.Font.Style := [];
     end;
 end;
 
-procedure TWaypointForm.lvWaypointsDblClick(Sender: TObject);
+procedure TWaypointForm.lvWaypointsDblClick( Sender: TObject );
 begin
-    btOkClick(nil);
+    btOkClick( nil );
 end;
 
-procedure TWaypointForm.BitBtn1Click(Sender: TObject);
+procedure TWaypointForm.BitBtn1Click( Sender: TObject );
 begin
-    InitPathfinder(FullDbPath);
+    InitPathfinder( FullDbPath );
     RefreshList;
 end;
 
-procedure TWaypointForm.btOkClick(Sender: TObject);
+procedure TWaypointForm.btOkClick( Sender: TObject );
 var
     PointData: int32;
     Ini: TIniFile;
-
 begin
     if lvWaypoints.Selected = nil then
         Exit;
     if lvWaypoints.Selected.Data = nil then
         Exit;
 
-    PointData := uint32(lvWaypoints.Selected.Data);
-    Ini := TIniFile.Create(ExtractFilePath(GetModuleName(HInstance)) + 'settings.ini');
+    PointData := uint32( lvWaypoints.Selected.Data );
+    Ini := TIniFile.Create( ExtractFilePath( GetModuleName( HInstance ) ) + 'settings.ini' );
     try
-        Ini.WriteInteger('Settings', 'LastTarget', Integer(PointData));
+        Ini.WriteInteger( 'Settings', 'LastTarget', integer( PointData ) );
     finally
         Ini.Free;
     end;
 
-    SyncUI(False); //  Собираем всё с экрана в словарь
+    SyncUI( false ); //  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-    ApplyParamsToContext; //  Выливаем в контекст DLL
+    ApplyParamsToContext; //  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ DLL
 
     // put scenario to segments
-    ctx.GenerateScenario(PointData);
+    ctx.GenerateScenario( PointData );
     ModalResult := mrOk;
 
 end;
 
-procedure TWaypointForm.lvWaypointsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
+procedure TWaypointForm.lvWaypointsSelectItem( Sender: TObject; Item: TListItem; Selected: boolean );
 var
-    TargetID, StartID: Integer;
+    TargetID, StartID: integer;
     // TotalDist,
-    DistToStart: Double;
-    PointData, scenario_index, i: Integer;
+    DistToStart: double;
+    PointData, scenario_index, i: integer;
     steps: TSteps;
     pi: TPathInfo;
 begin
-    btOk.Enabled := False;
-    if (not Selected) then
+    btOk.Enabled := false;
+    if ( not Selected ) then
         Exit;
-    if (Item = nil) then
+    if ( Item = nil ) then
         Exit;
-    if (Item.Data = nil) then
+    if ( Item.Data = nil ) then
         Exit;
-    btOk.Enabled := True;
-    PointData := uint32(Item.Data);
-    if (PointData and $80000000) = 0 then
+    btOk.Enabled := true;
+    PointData := uint32( Item.Data );
+    if ( PointData and $80000000 ) = 0 then
         scenario_index := 0
     else
         scenario_index := PointData and $7FFFFFFF;
 
     for i := 0 to frameContainer.ControlCount - 1 do
-        if frameContainer.Controls[i] is TPanel then
-            frameContainer.Controls[i].Visible := (frameContainer.Controls[i].Tag = scenario_index);
+        if frameContainer.Controls [i] is TPanel then
+            frameContainer.Controls[i].Visible := ( frameContainer.Controls [i].Tag = scenario_index );
 
-    if not Selected or (Item.Data = nil) or (uint32(Item.Data) >= $80000000) then
+    if not Selected or ( Item.Data = nil ) or ( uint32( Item.Data ) >= $80000000 ) then
         Exit;
 
     //  P := graph_points[uint32(Item.Data)];
@@ -488,30 +480,29 @@ begin
             BeginUpdate;
             try
                 Clear;
-                StartID := FindNearestPoint(ctx.StartPoint);
-                TargetID := Integer(Item.Data);
+                StartID := FindNearestPoint( ctx.StartPoint );
+                TargetID := integer( Item.Data );
                 if StartID <> -1 then
-                    DistToStart := ctx.StartPoint.DistanceTo(graph_points[StartID])
-                else
-                begin
-                    Add('[lvWaypointsSelectItem] StartID = -1');
+                    DistToStart := ctx.StartPoint.DistanceTo( graph_points [StartID] )
+                else begin
+                    Add( '[lvWaypointsSelectItem] StartID = -1' );
                     Exit;
                 end;
 
-                setlength(steps, 0);
-                pi := DoAStar(steps, graph_points[StartID], graph_points[TargetID]);
+                setlength( steps, 0 );
+                pi := DoAStar( steps, graph_points [StartID], graph_points [TargetID] );
 
-                Add('=== ROUTE INFO ===');
-                Add(Format('From ID: %d to ID: %d', [StartID, TargetID]));
-                Add('-------------------');
-                Add(Format('Distance: %s units', [FormatFloat('###,##0', pi.Distance)]));
-                if not FloatEqual(pi.TotalCost, pi.Distance) then
-                    Add(Format('Cost:   %.0f (inc. weights)', [pi.TotalCost]));
-                Add('-------------------');
-                Add(Format('Nodes: %d', [pi.PointCount]));
+                Add( '=== ROUTE INFO ===' );
+                Add( Format( 'From ID: %d to ID: %d', [StartID, TargetID] ) );
+                Add( '-------------------' );
+                Add( Format( 'Distance: %s units', [FormatFloat( '###,##0', pi.Distance )] ) );
+                if not FloatEqual( pi.TotalCost, pi.Distance ) then
+                    Add( Format( 'Cost:   %.0f (inc. weights)', [pi.TotalCost] ) );
+                Add( '-------------------' );
+                Add( Format( 'Nodes: %d', [pi.PointCount] ) );
                 if pi.ActionCount > 0 then
-                    Add(Format('Actions: %d', [pi.ActionCount]));
-                Add(Format('Entry distance: %s units', [FormatFloat('###,##0', DistToStart)]));
+                    Add( Format( 'Actions: %d', [pi.ActionCount] ) );
+                Add( Format( 'Entry distance: %s units', [FormatFloat( '###,##0', DistToStart )] ) );
 
             finally
                 EndUpdate;
@@ -526,4 +517,3 @@ begin
 end;
 
 end.
-

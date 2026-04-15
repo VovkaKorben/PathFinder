@@ -44,10 +44,12 @@ const
     actInvCount = 130;
     actInvItem = 140;
 
-    actGetInvCount = 200;
-    actGetInvItem = 210;
+    actGetInventoryCount = 200;
+    actGetInventoryItem = 210;
+    
 
     actSay = 400;
+    actSendPacket = 410;
 
 implementation
 

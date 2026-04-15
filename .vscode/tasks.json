@@ -30,6 +30,47 @@
                 "${file}"
             ],
             "problemMatcher": [ ]
+        },
+        {
+            "label": "Pascal Format (ptop)",
+            "type": "shell",
+            "command": "C:\\ptop\\ptop.exe",
+            "args": [
+                "-c",
+                "C:\\ptop\\ofile",
+                "-i",
+                "4",
+                "-l",
+                "1000",
+                "${file}",
+                "${file}"
+            ],
+            "group": "none",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "close": true
+            },
+            "problemMatcher": [ ]
+        },
+        {
+            "label": "jcf",
+            "type": "shell",
+            "command": "C:\\jcf\\jcf.exe",
+            "args": [
+                "-config=C:\\jcf\\jcfsettings.cfg",
+                "-F",
+                "${file}"
+               
+
+            ],
+            "group": "none",
+            "presentation": {
+                // "reveal": "silent",
+                // "panel": "shared",
+                "close": true
+            },
+            "problemMatcher": [ ]
         }
     ]
 }
