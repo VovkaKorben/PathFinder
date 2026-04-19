@@ -48,19 +48,25 @@ object WaypointForm: TWaypointForm
     end
   end
   object frameContainer: TGroupBox
-    Left = 418
+    Left = 409
     Top = 8
     Width = 233
     Height = 404
     Anchors = [akTop, akRight, akBottom]
     Caption = 'Information'
+    Padding.Left = 3
+    Padding.Top = 3
+    Padding.Right = 3
+    Padding.Bottom = 3
     TabOrder = 1
     object panMove: TPanel
-      Left = -19
+      Left = -11
       Top = 48
       Width = 241
       Height = 229
       BevelOuter = bvNone
+      Color = clRed
+      ParentBackground = False
       TabOrder = 1
       DesignSize = (
         241
@@ -76,28 +82,20 @@ object WaypointForm: TWaypointForm
         TabOrder = 0
       end
     end
-    object panClanbank: TPanel
-      Tag = 2
-      Left = 128
-      Top = 283
-      Width = 110
-      Height = 141
-      BevelOuter = bvNone
-      Caption = 'panClanbank'
-      TabOrder = 2
-    end
     object Panel1: TPanel
       Tag = 3
-      Left = 47
-      Top = 218
-      Width = 110
+      Left = 71
+      Top = 67
+      Width = 210
       Height = 141
       BevelOuter = bvNone
       Caption = 'panClanbank'
+      Color = clLime
+      ParentBackground = False
       TabOrder = 3
       object Label1: TLabel
-        Left = 16
-        Top = 12
+        Left = 32
+        Top = 40
         Width = 114
         Height = 13
         Caption = 'No parameters required'
@@ -106,12 +104,14 @@ object WaypointForm: TWaypointForm
     end
     object pan7Signs: TPanel
       Tag = 1
-      Left = 147
-      Top = 299
+      Left = 151
+      Top = 267
       Width = 185
       Height = 374
       BevelOuter = bvNone
       Caption = 'pan7Signs'
+      Color = clBlue
+      ParentBackground = False
       TabOrder = 0
       object rbDawn: TRadioButton
         Left = 16
@@ -158,6 +158,35 @@ object WaypointForm: TWaypointForm
         Height = 17
         Caption = 'Seal of Strife'
         TabOrder = 4
+      end
+    end
+    object panClanbank: TPanel
+      Tag = 2
+      Left = 0
+      Top = 234
+      Width = 201
+      Height = 141
+      BevelOuter = bvNone
+      Caption = 'panClanbank'
+      Color = clGradientActiveCaption
+      ParentBackground = False
+      TabOrder = 2
+      object Label2: TLabel
+        Left = 36
+        Top = 21
+        Width = 115
+        Height = 13
+        AutoSize = False
+        Caption = 'Adena limit'
+      end
+      object Edit1: TEdit
+        Left = 32
+        Top = 40
+        Width = 121
+        Height = 21
+        NumbersOnly = True
+        TabOrder = 0
+        Text = '200000'
       end
     end
   end

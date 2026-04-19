@@ -1,0 +1,5 @@
+скрипт в папке адрика
+исходники на Е
+
+death penalty check
+export path (from current point to selected)

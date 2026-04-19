@@ -1,4 +1,4 @@
-// https://github.com/VovkaKorben/PathFinder.git
+﻿// https://github.com/VovkaKorben/PathFinder.git
 unit uWaypointForm;
 
 interface
@@ -31,6 +31,8 @@ type
         cbSeal1: TCheckBox;
         cbSeal2: TCheckBox;
         cbSeal3: TCheckBox;
+    Edit1: TEdit;
+    Label2: TLabel;
         procedure FormCreate( Sender: TObject );
         procedure lvWaypointsDblClick( Sender: TObject );
         procedure lvWaypointsSelectItem( Sender: TObject; Item: TListItem; Selected: boolean );
@@ -309,7 +311,7 @@ begin
     FFormParams := TDictionary<string, variant>.Create;
     Self.Icon.Handle := LoadIcon( HInstance, 'MAINICON' );
     Self.Caption := Self.Caption + ' (' + FullDbPath + ')'; // <-- ���������
-    ApplyCarbonStyle;
+   ApplyCarbonStyle;
     FillPoints;
 
     for i := 0 to frameContainer.ControlCount - 1 do
