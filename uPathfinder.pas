@@ -9,7 +9,7 @@ uses
     uConstants, System.SyncObjs;
 
 const
-    MAX_DLG_BUFFER = 16384;
+    MAX_DLG_BUFFER = 16384; 
 
 type
     TPredefinedAction = (paMove, pa7Signs, paClanBank, paUnstuck);
