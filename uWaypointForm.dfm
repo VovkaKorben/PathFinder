@@ -179,7 +179,7 @@ object WaypointForm: TWaypointForm
         AutoSize = False
         Caption = 'Adena limit'
       end
-      object Edit1: TEdit
+      object edAdenaLimit: TEdit
         Left = 32
         Top = 40
         Width = 121

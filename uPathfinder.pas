@@ -12,14 +12,26 @@ const
     MAX_DLG_BUFFER = 16384;
 
 type
+    EPathException = class ( Exception )
+    public
+        ErrorCode: integer;
+        constructor Create( const Msg: string; ACode: integer );
+    end;
+
     TPredefinedAction = ( paMove, pa7Signs, paClanBank, paUnstuck );
     TSegmentAction = ( saStop, saMoveTo, saMoving, saTest, //
-        sa7S_Init, sa7S_MoveToPriest, sa7S_GetDlg, sa7S_Echo, sa7S_Analyze,
+
+        // 7 signs
+        sa7S_Init, sa7S_MoveToPriest, sa7S_GetDlg, sa7S_Analyze,
         sa7S_DoReg,
-        sa7S_Already, sa7S_Error, // 7 signs
+        sa7S_Already,
+        sa7S_Error,
+
+          // warehouse
         saWH_Init_1, saWH_Init_2, saWH_ItemGet, saWH_ItemLog, saWH_ItemPut,
         saWH_Move,
-        // warehouse
+
+     // unstuck
         saUnstuck
         );
 
@@ -38,6 +50,9 @@ type
 
         FInventoryCount, FInventoryIndex: integer;
         FInventory: TList<TInventoryItem>;
+
+        ssPriestIndex, whNpcIndex: integer;
+        FUserLevel: integer;
 
         FGoalID: uint32;
         FSegments: TArray<TSegmentAction>; // заполняется при выборе в окне действия
@@ -162,6 +177,12 @@ const
         ( Loc: 'Schuttgart'; NpcId: 31997; PriestType: 0; Pos: ( X: 86816; Y: -143200; Z: -1341 ) ),
         ( Loc: 'Schuttgart'; NpcId: 31998; PriestType: 1; Pos: ( X: 85152; Y: -142112; Z: -1542 ) )
         );
+
+constructor EPathException.Create( const Msg: string; ACode: integer );
+begin
+    inherited Create( Msg );
+    ErrorCode := ACode;
+end;
 
 function StripHTML( const S: string ): string;
 var
@@ -350,9 +371,30 @@ procedure TPathContext.GenerateSegment( const SegmentType: TSegmentAction );
         result := RandomFrom( a );
     end;
 
+    function IntToHexLE( Value: int32 ): string;
+    begin
+        Result := IntToHex( byte( Value ), 2 ) +
+            IntToHex( byte( Value shr 8 ), 2 ) +
+            IntToHex( byte( Value shr 16 ), 2 ) +
+            IntToHex( byte( Value shr 24 ), 2 );
+    end;
+
+    function createWarehousePacket( FInventory: TList<TInventoryItem> ): string;
+    var
+        Item: TInventoryItem;
+    begin
+        result := '31';// SendWareHouseDepositList
+        result := result + IntToHexLE( FInventory.Count );
+        for Item in FInventory do
+        begin
+            result := result + IntToHexLE( Item.oid );
+            result := result + IntToHexLE( Item.Count );
+        end;
+    end;
+
 var
     DlgRaw, tmpStr, ssName: string;
-    StartPointID, tmp, ssSide, ssPriestIndex: int32;
+    StartPointID, tmp, ssSide: int32;
 begin
 
     try
@@ -362,7 +404,7 @@ begin
             saMoveTo: begin
                 SetLength( FSteps, 3 );
 
-                FSteps[0].AssignStr( graph_points [FGoalID].Name ); // output goal name
+                FSteps[0].AssignMessage( graph_points [FGoalID].Name, msgMoveTo ); // output goal name
                 FSteps[1].AssignInt( actFaceControl, 0, 0 ); // disable adr
                 FSteps[2].AssignInt( actSitStand, 1 ); // stand
 
@@ -377,8 +419,9 @@ begin
                 SetLength( FSteps, 3 );
                 FSteps[0].AssignInt( actFaceControl, 0, 0, 0 );
                 FSteps[1].AssignInt( actSitStand, 1, 0, 0 );
-                FSteps[2].AssignStr( '/unstuck', actSay );
+                FSteps[2].AssignStr( actSay, '/unstuck', );
             end;
+
             // ------------------------------------------------------------------------ WAREHOUSE
             saWH_Init_1: begin
                 SetLength( FSteps, 2 );
@@ -394,7 +437,7 @@ begin
 
                 // output count to user
                 SetLength( FSteps, 1 );
-                FSteps[0].AssignStr( Format( 'Items count: %d ', [FRecv1] ) );
+                FSteps[0].AssignMessage( Format( 'Items count: %d ', [FRecv1] ), msgWarehouse );
             end;
 
             saWH_ItemGet: begin
@@ -418,131 +461,211 @@ begin
                     tmpStr := '+ ' + tmpStr
                 else
                     tmpStr := '- ' + tmpStr;
-                FSteps[0].AssignStr( tmpStr );
+                FSteps[0].AssignMessage( tmpStr, msgWarehouse );
             end;
 
             saWH_ItemPut: begin
                 if allowDeposit.BinarySearch( FRecv1, tmp ) then
                 begin
-                    // if (FRecv1 = 57) and 
 
-                    FInventory.Add( TInventoryItem.Create( FRecv1, FRecv2, FRecv3 ) );
-
-
+                    // clip adena to limit
+                    if ( FRecv1 = 57 ) then
+                    begin
+                        if Params.ContainsKey( 'edAdenaLimit' ) then
+                            tmp := integer( Params ['edAdenaLimit'] )
+                        else
+                            tmp := 1000000;
+                        FRecv2 := FRecv2 - min( FRecv2, tmp );
+                    end;
+                    if ( FRecv2 > 0 ) then
+                        FInventory.Add( TInventoryItem.Create( FRecv1, FRecv2, FRecv3 ) );
                 end;
                 Inc( FInventoryIndex );
                 JumpTo( saWH_ItemGet );
             end;
 
             saWH_Move: begin
-                if FInventory.count > 0 then
-
-
-                    // move to warehouse npc and open "deposit clan bank"
-                    FSteps[1].AssignStr( Format( 'WH: %s / %s', [WAREHOUSE [tmp].name, WAREHOUSE [tmp].Loc] ) );
-                FSteps[2].AssignStr( Format( 'Im at: %s', [StartPoint.ToString( false )] ) );
-
-                tmp := FindNearestWH( StartPoint );
-                FSteps[1].AssignInt( actSitStand, 1, 0, 0 );
-                SetLength( FSteps, 1 );
-                FSteps[0].AssignStr( 'saWH_Move' );
-            end;
-
-            // ------------------------------------------------------------------------ WAREHOUSE
-            sa7S_Init: begin
-                if Params.ContainsKey( 'rbDusk' ) and Params ['rbDusk'] then
+                if FInventory.count = 0 then
                 begin
-                    ssSide := 1;
-                    ssName := 'Dusk';
-                end else begin
-                    ssSide := 0;
-                    ssName := 'Dawn';
-                end;
-                ssPriestIndex := FindNearestPriest( StartPoint, ssSide );
-                if ssPriestIndex = -1 then
-                    raise Exception.Create( 'Жрец не найден!' );
+                // store list empty
+                    SetLength( FSteps, 2 );
+                    FSteps[0].AssignMessage( 'Nothing to store!', msgWarehouse );
+                    FSteps[1].AssignInt( actStop );
 
-                SetLength( FSteps, 1 );
-                FSteps[0].AssignStr( Format( '7 Signs: %s from %s', [ssName, PRIESTS [ssPriestIndex].Loc] ) );
+                end else begin
+                // 
+                    whNpcIndex := FindNearestWH( StartPoint );
+
+                    SetLength( FSteps, 2 );
+                    FSteps[0].AssignMessage( Format( 'NPC: %s, items: %d', [WAREHOUSE [whNpcIndex].Name, FInventory.Count] ), msgWarehouse );
+                    FSteps[1].AssignInt( actSitStand, 1 );
+
+                    if StartPoint.DistanceTo( WAREHOUSE [whNpcIndex].Pos ) > 200 then
+                    begin
+                        StartPointID := FindNearestPoint( StartPoint );
+                        if StartPointID = -1 then
+                            raise EPathException.Create( 'Start point not found', msgWarehouse );
+
+                        DoAStar( FSteps, graph_points [StartPointID], WAREHOUSE [whNpcIndex].Pos );
+                    end;
+                end;
             end;
-            
-            sa7S_MoveToPriest: begin
+            saWH_SelectNpc: begin
+                SetLength( FSteps, 2 );
+                FSteps[0].AssignInt( actNpcSel, WAREHOUSE [whNpcIndex].NpcId );
+                FSteps[1].AssignInt( actNpcDlg );
+            end;
+            saWH_OpenDlg: begin
+
+
+             { types
+  1 taurin (depP/withP/depC/withC)
+  2 valkon (depP/withP1/withP2/depC/withC1/withC2)
+  3 pochi (P/C -> dep/with)
+}
+
+                case WAREHOUSE [whNpcIndex].WhType of
+                    1: begin
+                        SetLength( FSteps, 1 );
+                        FSteps[0].AssignInt( actDlgSel, 3 );
+
+                    end;
+                    2: begin
+                        SetLength( FSteps, 1 );
+                        FSteps[0].AssignInt( actDlgSel, 4 );
+                    end;
+                    3: begin
+                        SetLength( FSteps, 2 );
+                        FSteps[0].AssignInt( actDlgSel, 2 );
+                        FSteps[1].AssignInt( actDlgSel, 1 );
+                    end;
+                else
+                    raise EPathException.Create( 'Unknown warehouse type', msgWarehouse );
+                end;
+
+            end;
+            saWH_SendPacket: begin
+                tmpStr := createWarehousePacket( FInventory );
+                SetLength( FSteps, 2 );
+                FSteps[0].AssignStr( actSendPacket, tmpStr );
+                FSteps[1].AssignMessage( 'Done!', msgWarehouse );
+            end;
+
+            // ------------------------------------------------------------------------ SEVEN SIGNS
+            // 
+            sa7S_Init: begin
                 SetLength( FSteps, 2 );
                 FSteps[0].AssignInt( actFaceControl, 0, 0 ); // disable adr
-                FSteps[1].AssignInt( actSitStand, 1 ); // stand
-
-                if StartPoint.DistanceTo( PRIESTS [int32( Params ['ss_priestindex'] )].Pos ) > 200 then
-                begin
-                    StartPointID := FindNearestPoint( StartPoint );
-                    if StartPointID = -1 then
-
-                        raise Exception.Create( 'Start point not found' );
-
-                    DoAStar( FSteps, graph_points [StartPointID], PRIESTS [int32( Params ['ss_priestindex'] )].Pos );
-                end;
+                FSteps[1].AssignInt( actGetLevel ); // get level
             end;
+
+            sa7S_Init2: begin
+                FUserLevel := FRecv1;
+                if FUserLevel < 20 then
+                begin
+                    SetLength( FSteps, 2 );
+                    FSteps[0].AssignMessage( 'Allowed if level>=20', msgSevenSigns, clRed );
+                    FSteps[1].AssignInt( actStop );
+                end else begin
+
+                    if Params.ContainsKey( 'rbDusk' ) and Params ['rbDusk'] then
+                    begin
+                        ssSide := 1;
+                        ssName := 'Dusk';
+                    end else begin
+                        ssSide := 0;
+                        ssName := 'Dawn';
+                    end;
+                    ssPriestIndex := FindNearestPriest( StartPoint, ssSide );
+                    if ssPriestIndex = -1 then
+                        raise EPathException.Create( 'Priest not found!', msgSevenSigns );
+
+                    SetLength( FSteps, 2 );
+                    FSteps[0].AssignInt( actSitStand, 1 ); // stand
+                    FSteps[1].AssignMessage( Format( '%s from %s', [ssName, PRIESTS [ssPriestIndex].Loc] ), msgSevenSigns, clGreen );
+                    if StartPoint.DistanceTo( PRIESTS [ssPriestIndex].Pos ) > 200 then
+                    begin
+                        StartPointID := FindNearestPoint( StartPoint );
+                        if StartPointID = -1 then
+                            raise EPathException.Create( 'Start point not found', msgSevenSigns );
+
+                        DoAStar( FSteps, graph_points [StartPointID], PRIESTS [ssPriestIndex].Pos );
+                    end;
+
+                end;
+
+
+            end;
+
             sa7S_GetDlg: begin
                 SetLength( FSteps, 3 );
-                FSteps[0].AssignInt( actNpcSel, PRIESTS [int32( Params ['ss_priestindex'] )].NpcId );
+                FSteps[0].AssignInt( actNpcSel, PRIESTS [ssPriestIndex].NpcId );
                 FSteps[1].AssignInt( actNpcDlg );
                 FSteps[2].AssignInt( actDlgTextToDLL );
             end;
 
-            sa7S_Echo: begin
-                SetLength( FSteps, 1 );
-                FSteps[0].AssignStr( 'echo: ' + StripHTML( string( ansistring( FOutputBuffer ) ) ) );
-            end;
 
             sa7S_Analyze: begin
-                SetLength( FSteps, 0 );
+
                 DlgRaw := string( ansistring( FOutputBuffer ) );
 
                 if DlgRaw = '' then
-                begin
-                        // Может, просто подождем или попробуем еще раз?
-                    JumpTo( sa7S_GetDlg );
-                    Exit;
-                end;
-                if Pos( 'Contributing', DlgRaw ) > 0 then
-                begin
+                    JumpTo( sa7S_GetDlg )
+                else if Pos( 'Contributing', DlgRaw ) > 0 then
                     JumpTo( sa7S_Already )
-                end else if Pos( 'Participation', DlgRaw ) > 0 then
+                else if Pos( 'Participation', DlgRaw ) > 0 then
+                    JumpTo( sa7S_DoReg_Init )
+                else
+                    JumpTo( sa7S_Error );
+            end;
+
+            sa7S_DoReg_Init: begin
+                // get user adena
+                SetLength( FSteps, 1 );
+                FSteps[0].AssignInt( actGetInventoryByID, 57 );
+            end;
+
+            sa7S_DoReg: begin
+                if ( FUserLevel >= 40 ) and ( FRecv1 < 50000 ) then
                 begin
-                    JumpTo( sa7S_DoReg )
+                    SetLength( FSteps, 2 );
+                    FSteps[0].AssignMessage( 'Not enough adena!', msgSevenSigns, clRed );
+                    FSteps[1].AssignInt( actStop );
                 end else begin
-                    JumpTo( sa7S_Error )
+                    SetLength( FSteps, 5 );
+                    FSteps[0].AssignInt( actDlgSel, 4 );
+                    FSteps[1].AssignInt( actDlgSel, GetRandomSealIndex( boolean( Params ['cbSeal1'] ), boolean( Params ['cbSeal2'] ), boolean( Params ['cbSeal3'] ) ) ); // Печать
+                    FSteps[2].AssignInt( actDlgSel, 1 );
+                    FSteps[3].AssignMessage( 'Registration done!', msgSevenSigns, clBlack );
+                    FSteps[4].AssignInt( actStop );
                 end;
             end;
-            sa7S_DoReg: begin
 
-                SetLength( FSteps, 4 );
-                FSteps[0].AssignInt( actDlgSel, 4 );
-                FSteps[1].AssignInt( actDlgSel, GetRandomSealIndex( boolean( Params ['cbSeal1'] ), boolean( Params ['cbSeal2'] ), boolean( Params ['cbSeal3'] ) ) ); // Печать
-                FSteps[2].AssignInt( actDlgSel, 1 );
-                FSteps[3].AssignStr( 'Registration done!' );
-            end;
             sa7S_Already: begin
                 SetLength( FSteps, 2 );
-                FSteps[0].AssignStr( 'Already registered! Skipping...' );
+                FSteps[0].AssignMessage( 'Already registered! Skipping...', msgSevenSigns, clBlack );
                 FSteps[1].AssignInt( actStop );
-
-                    // Здесь можно добавить JumpTo(saStop) или что-то еще
             end;
+
             sa7S_Error: begin
-                SetLength( FSteps, 2 );
-                FSteps[0].AssignStr( 'Unknown dialog state!' );
-                FSteps[1].AssignInt( actStop );
+                SetLength( FSteps, 3 );
+                FSteps[0].AssignMessage( 'Unknown dialog state!', msgSevenSigns, clRed );
+                FSteps[1].AssignMessage( string( ansistring( FOutputBuffer ) ), msgSevenSigns, clRed );
+                FSteps[2].AssignInt( actStop );
             end;
 
         end;
     except
         on E: Exception do
         begin
-
             SetLength( FSteps, 2 );
-            FSteps[0].AssignStr( 'Error: ' + E.Message );
+            if E is EPathException then
+                FSteps[0].AssignMessage( E.Message, EPathException( E ).ErrorCode, clRed )
+            else
+                FSteps[0].AssignMessage( E.Message, msgError, clRed );
             FSteps[1].AssignInt( actStop );
         end;
+
     end;
 
 end;
@@ -575,24 +698,11 @@ begin
     end else begin
         case ( FGoalID and $7FFFFFFF ) of
             1: // Семь Печатей
-            begin
-                    // Если rbDusk нажат - сторона 1, иначе 0 (Dawn)
-
-                    //                    FillScenario([sa7S_Init, sa7S_MoveToPriest, sa7S_GetDlg, sa7S_Echo, sa7S_Analyze, sa7S_DoReg]);
-                FillScenario( [sa7S_Init, sa7S_MoveToPriest, sa7S_GetDlg, sa7S_Echo,
-                    sa7S_Analyze,
-                    sa7S_DoReg, sa7S_Already, sa7S_Error] );
-            end;
+                FillScenario( [sa7S_Init, sa7S_Init2, sa7S_GetDlg, sa7S_Analyze, sa7S_DoReg_Init, sa7S_DoReg, sa7S_Already, sa7S_Error] );
             2: // WH
-            begin
-
                 FillScenario( [saWH_Init_1, saWH_Init_2, saWH_ItemGet, saWH_ItemLog, saWH_ItemPut, saWH_Move] );
-
-            end;
             3: // unstuck
-            begin
                 FillScenario( [saUnstuck] );
-            end;
         end
     end;
 

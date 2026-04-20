@@ -52,7 +52,10 @@ type
         act, data0, data1, data2: int32;
         str: string;
         procedure AssignInt(act: int32; data0: int32 = 0; data1: int32 = 0; data2: int32 = 0);
-        procedure AssignStr(str: string; data0: int32 = actStrFromDLL);
+        
+        // message, data0 = command (actStrFromDLL), data1 = message header, data2 = message color
+        procedure AssignStr(act: int32;str: string);
+        procedure AssignMessage(str: string; headerCode:int32; msgColor: int32 = clBlack);
     end;
 
     TSteps = array of TStep;
@@ -89,17 +92,25 @@ begin
     Self.data2 := data2;
 end;
 
-{ TStep }
+procedure 
+        procedure
 
-procedure TStep.AssignStr(str: string; data0: int32);
+procedure TStep.AssignStr(act: int32;str: string);
 begin
-    Self.act := data0; // actStrFromDLL;
+    Self.act := act; 
     self.str := str;
-    Self.data0 := data0;
-    Self.data1 := 0;
+    Self.data0 := 0;
+    Self.data1 :=0;
     Self.data2 := 0;
 end;
-
+procedure TStep. AssignMessage(str: string; headerCode:int32; msgColor: int32 = clBlack);
+begin
+    Self.act := actMessageFromDLL;
+    self.str := str;
+    Self.data0 := headerCode;
+    Self.data1 :=msgColor;
+    Self.data2 := 0;
+end;
 function FloatEqual(a, b: double): boolean;
 begin
     result := abs(a - b) < 0.0001;
