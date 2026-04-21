@@ -55,7 +55,7 @@ type
         
         // message, data0 = command (actStrFromDLL), data1 = message header, data2 = message color
         procedure AssignStr(act: int32;str: string);
-        procedure AssignMessage(str: string; headerCode:int32; msgColor: int32 = clBlack);
+        procedure AssignMessage(str: string; headerCode:int32; msgColor: int32 = 0);
     end;
 
     TSteps = array of TStep;
@@ -92,9 +92,6 @@ begin
     Self.data2 := data2;
 end;
 
-procedure 
-        procedure
-
 procedure TStep.AssignStr(act: int32;str: string);
 begin
     Self.act := act; 
@@ -103,7 +100,7 @@ begin
     Self.data1 :=0;
     Self.data2 := 0;
 end;
-procedure TStep. AssignMessage(str: string; headerCode:int32; msgColor: int32 = clBlack);
+procedure TStep. AssignMessage(str: string; headerCode:int32; msgColor: int32 = 0);
 begin
     Self.act := actMessageFromDLL;
     self.str := str;

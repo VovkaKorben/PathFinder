@@ -1,5 +1,14 @@
 {
 этапы
+
+
+gabrielle, q 1 1, feather
+
+alt+b oren, tp ivory, 4fl, Kaiene
+get quest
+alt+b oren, tp forsaken
+
+
 0
 100     марок 0
 110     есть итемы от 1 части
