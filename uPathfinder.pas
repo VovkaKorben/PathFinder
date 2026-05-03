@@ -81,6 +81,7 @@ var
 
 function GetContext(AOID: int32): TPathContext;
 procedure Release(AOID: int32);
+function GetNearestWHInfo(const CurrentPos: TPoint3D; var Name, Loc: string; var Dist: Double): Boolean;
 
 implementation
 
@@ -214,20 +215,70 @@ end;
 
 function FindNearestWH(const CurrentPos: TPoint3D): integer;
 var
-    i: integer;
-    MinDist, D: double;
+    i, start_id: integer;
+    MinDist: double;
+    steps: TSteps;
+    pi: TPathInfo;
 begin
     Result := -1;
     MinDist := 1E30;
+    start_id := FindNearestPoint(CurrentPos);
+    
     for i := Low(WAREHOUSE) to High(WAREHOUSE) do
     begin
-        D := CurrentPos.DistanceTo(WAREHOUSE[i].Pos);
-        if D < MinDist then
+        if start_id <> -1 then
         begin
-            MinDist := D;
-            Result := i;
+            setlength(steps, 0);
+            pi := DoAStar(steps, graph_points[start_id], WAREHOUSE[i].Pos);
+            // If A* returns a distance of 0, check if we're already close
+            if (pi.Distance > 0) or (CurrentPos.DistanceTo(WAREHOUSE[i].Pos) < 200) then
+            begin
+                if pi.Distance < MinDist then
+                begin
+                    MinDist := pi.Distance;
+                    Result := i;
+                end;
+            end;
         end;
+    end;
+    
+    // Fallback if A* fails for all or start point is invalid
+    if Result = -1 then
+    begin
+        for i := Low(WAREHOUSE) to High(WAREHOUSE) do
+        begin
+            pi.Distance := CurrentPos.DistanceTo(WAREHOUSE[i].Pos);
+            if pi.Distance < MinDist then
+            begin
+                MinDist := pi.Distance;
+                Result := i;
+            end;
+        end;
+    end;
+end;
 
+function GetNearestWHInfo(const CurrentPos: TPoint3D; var Name, Loc: string; var Dist: Double): Boolean;
+var
+    i, start_id: integer;
+    steps: TSteps;
+    pi: TPathInfo;
+begin
+    Result := False;
+    i := FindNearestWH(CurrentPos);
+    if i <> -1 then
+    begin
+        Name := WAREHOUSE[i].Name;
+        Loc := WAREHOUSE[i].Loc;
+        start_id := FindNearestPoint(CurrentPos);
+        if start_id <> -1 then
+        begin
+            setlength(steps, 0);
+            pi := DoAStar(steps, graph_points[start_id], WAREHOUSE[i].Pos);
+            Dist := pi.Distance;
+        end
+        else
+            Dist := CurrentPos.DistanceTo(WAREHOUSE[i].Pos);
+        Result := True;
     end;
 end;
 

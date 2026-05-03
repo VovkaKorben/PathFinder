@@ -81,6 +81,17 @@ object WaypointForm: TWaypointForm
           'Memo1')
         TabOrder = 0
       end
+      object cbUsePayedTeleport: TCheckBox
+        Left = 8
+        Top = 140
+        Width = 200
+        Height = 17
+        Anchors = [akLeft, akBottom]
+        Caption = 'Use payed teleport'
+        Checked = True
+        State = cbChecked
+        TabOrder = 1
+      end
     end
     object Panel1: TPanel
       Tag = 3

@@ -33,6 +33,7 @@ type
         cbSeal3: TCheckBox;
     Edit1: TEdit;
     Label2: TLabel;
+    cbUsePayedTeleport: TCheckBox;
         procedure FormCreate( Sender: TObject );
         procedure lvWaypointsDblClick( Sender: TObject );
         procedure lvWaypointsSelectItem( Sender: TObject; Item: TListItem; Selected: boolean );
@@ -450,6 +451,8 @@ var
     PointData, scenario_index, i: integer;
     steps: TSteps;
     pi: TPathInfo;
+    whName, whLoc: string;
+    whDist: Double;
 begin
     btOk.Enabled := false;
     if ( not Selected ) then
@@ -469,13 +472,12 @@ begin
         if frameContainer.Controls [i] is TPanel then
             frameContainer.Controls[i].Visible := ( frameContainer.Controls [i].Tag = scenario_index );
 
-    if not Selected or ( Item.Data = nil ) or ( uint32( Item.Data ) >= $80000000 ) then
+    if not Selected or ( Item.Data = nil ) then
         Exit;
 
-    //  P := graph_points[uint32(Item.Data)];
-
-      //    if False then // temporary disable
     if scenario_index = 0 then
+    begin
+        if ( uint32( Item.Data ) >= $80000000 ) then Exit;
         with Memo1.Lines do
         begin
             // path info
@@ -510,6 +512,32 @@ begin
                 EndUpdate;
             end;
         end;
+    end
+    else if scenario_index = 2 then
+    begin
+        with Memo1.Lines do
+        begin
+            BeginUpdate;
+            try
+                Clear;
+                if GetNearestWHInfo(ctx.StartPoint, whName, whLoc, whDist) then
+                begin
+                    Add('=== WAREHOUSE INFO ===');
+                    Add(Format('Nearest NPC: %s', [whName]));
+                    Add(Format('Location: %s', [whLoc]));
+                    Add('-------------------');
+                    Add(Format('Distance (A*): %s units', [FormatFloat('###,##0', whDist)]));
+                end
+                else
+                begin
+                    Add('=== WAREHOUSE INFO ===');
+                    Add('No warehouse NPC found');
+                end;
+            finally
+                EndUpdate;
+            end;
+        end;
+    end;
 
 end;
 
