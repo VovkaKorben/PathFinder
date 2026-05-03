@@ -6,7 +6,7 @@ interface
 uses
     Windows, System.SysUtils, System.Classes, System.Generics.Collections,
     System.Math, System.Diagnostics, astar, AnsiStrings, vcl.forms,
-    uConstants, System.SyncObjs,Vcl.Graphics;
+    uConstants, System.SyncObjs, Vcl.Graphics;
 
 const
     MAX_DLG_BUFFER = 16384;
@@ -100,54 +100,60 @@ type
     end;
 
 const
-    WAREHOUSE: array[0..32] of TWarehouseData =
-        (
-        (Loc: 'gludio_npc1722_02001'; name: 'Norman'; NpcId: 30210; WhType: - 1; Pos: (X: - 81857; Y: 153545; Z: - 3171)), // gludio_npc1722_02001
-        (Loc: 'gludio_npc1725_01101'; name: 'Wilford'; NpcId: 30005; WhType: - 1; Pos: (X: - 81512; Y: 243424; Z: - 3720)), // gludio_npc1725_01101
-        (Loc: 'gludio_npc1725_01101'; name: 'Rant'; NpcId: 30054; WhType: - 1; Pos: (X: - 81895; Y: 243917; Z: - 3721)), // gludio_npc1725_01101
-        (Loc: 'gludio_npc1725_01101'; name: 'Rolfe'; NpcId: 30055; WhType: - 1; Pos: (X: - 81840; Y: 243534; Z: - 3721)), // gludio_npc1725_01101
-        (Loc: 'lyonn_npc1814_00301'; name: 'Grookin'; NpcId: 30562; WhType: - 1; Pos: (X: - 43109; Y: - 113770; Z: - 221)), // lyonn_npc1814_00301
-        (Loc: 'gludio_npc1921_01901'; name: 'Haprock'; NpcId: 30255; WhType: - 1; Pos: (X: - 13132; Y: 124988; Z: - 3118)), // gludio_npc1921_01901
-        (Loc: 'oren09_npc2018_00401'; name: 'Erviante'; NpcId: 30140; WhType: - 1; Pos: (X: 13464; Y: 17751; Z: - 4541)), // oren09_npc2018_00401
-        (Loc: 'oren09_npc2018_00401'; name: 'Dorankus'; NpcId: 30139; WhType: - 1; Pos: (X: 13380; Y: 17430; Z: - 4542)), // oren09_npc2018_00401
-        (Loc: 'dion11_npc2022_0101'; name: 'Holvas'; NpcId: 30058; WhType: - 1; Pos: (X: 20750; Y: 144432; Z: - 3068)), // dion11_npc2022_0101
-        (Loc: 'dion10_npc2023_0101'; name: 'Sonin'; NpcId: 31773; WhType: - 1; Pos: (X: 17788; Y: 169842; Z: - 3496)), // dion10_npc2023_0101
-        (Loc: 'rune02_npc2116_0401'; name: 'Hugin'; NpcId: 31311; WhType: - 1; Pos: (X: 43556; Y: - 48592; Z: - 800)), // rune02_npc2116_0401
-        (Loc: 'rune02_npc2116_0401'; name: 'Durin'; NpcId: 31312; WhType: - 1; Pos: (X: 43348; Y: - 48444; Z: - 800)), // rune02_npc2116_0401
-        (Loc: 'rune02_npc2116_0401'; name: 'Lunin'; NpcId: 31313; WhType: - 1; Pos: (X: 43308; Y: - 48444; Z: - 800)), // rune02_npc2116_0401
-        (Loc: 'oren04_npc2119_00201'; name: 'Markius'; NpcId: 30153; WhType: - 1; Pos: (X: 47780; Y: 49568; Z: - 2983)), // oren04_npc2119_00201
-        (Loc: 'oren04_npc2119_00301'; name: 'Julia'; NpcId: 30152; WhType: - 1; Pos: (X: 47912; Y: 50170; Z: - 2983)), // oren04_npc2119_00301
-        (Loc: 'schuttgart20_npc2213_17m1'; name: 'Rydel'; NpcId: 31956; WhType: - 1; Pos: (X: 88200; Y: - 141384; Z: - 1536)), // schuttgart20_npc2213_17m1
-        (Loc: 'schuttgart13_npc2215_01m1'; name: 'Snoit'; NpcId: 31955; WhType: - 1; Pos: (X: 87240; Y: - 141448; Z: - 1536)), // schuttgart13_npc2215_01m1
-        (Loc: 'goddard02_npc2315_02m1'; name: 'Sandal'; NpcId: 31540; WhType: - 1; Pos: (X: 147552; Y: - 56256; Z: - 2776)), // goddard02_npc2315_02m1
-        (Loc: 'goddard02_npc2315_02m1'; name: 'Conrad'; NpcId: 31539; WhType: - 1; Pos: (X: 147368; Y: - 56168; Z: - 2776)), // goddard02_npc2315_02m1
-        (Loc: 'goddard02_npc2315_02m1'; name: 'Dewald'; NpcId: 31538; WhType: - 1; Pos: (X: 147320; Y: - 56168; Z: - 2776)), // goddard02_npc2315_02m1
-        (Loc: 'giran05_npc2416_0201'; name: 'Kestor'; NpcId: 30181; WhType: - 1; Pos: (X: 80892; Y: 146608; Z: - 3528)), // giran05_npc2416_0201
-        (Loc: 'giran05_npc2416_0201'; name: 'Gesto'; NpcId: 30514; WhType: - 1; Pos: (X: 80920; Y: 146200; Z: - 3528)), // giran05_npc2416_0201
-        (Loc: 'giran05_npc2416_0201'; name: 'Nixie'; NpcId: 30515; WhType: - 1; Pos: (X: 80648; Y: 146312; Z: - 3528)), // giran05_npc2416_0201
-        (Loc: 'giran05_npc2416_0201'; name: 'Bebara'; NpcId: 30516; WhType: - 1; Pos: (X: 80600; Y: 146440; Z: - 3528)), // giran05_npc2416_0201
-        (Loc: 'aden10_npc2419_0101'; name: 'Donnal'; NpcId: 30626; WhType: - 1; Pos: (X: 146180; Y: 27124; Z: - 2200)), // aden10_npc2419_0101
-        (Loc: 'aden10_npc2419_0101'; name: 'Hofman'; NpcId: 30627; WhType: - 1; Pos: (X: 146132; Y: 27432; Z: - 2200)), // aden10_npc2419_0101
-        (Loc: 'aden10_npc2419_0101'; name: 'Carlyle'; NpcId: 30628; WhType: - 1; Pos: (X: 146392; Y: 27288; Z: - 2200)), // aden10_npc2419_0101
-        (Loc: 'innadril04_npc2520_0101'; name: 'Custo'; NpcId: 30869; WhType: - 1; Pos: (X: 111160; Y: 218968; Z: - 3536)), // innadril04_npc2520_0101
-        (Loc: 'innadril04_npc2520_0101'; name: 'Vatros'; NpcId: 30870; WhType: - 1; Pos: (X: 111304; Y: 219144; Z: - 3536)), // innadril04_npc2520_0101
-        (Loc: 'innadril04_npc2520_0101'; name: 'Hofner'; NpcId: 30871; WhType: - 1; Pos: (X: 111016; Y: 219144; Z: - 3536)), // innadril04_npc2520_0101
-        (Loc: 'oren09_npc2118_01m1'; name: 'Croop'; NpcId: 30147; WhType: - 1; Pos: (X: 82568; Y: 53128; Z: - 1488)), // oren09_npc2118_01m1
-        (Loc: 'oren09_npc2118_01m1'; name: 'Gudis'; NpcId: 30146; WhType: - 1; Pos: (X: 82632; Y: 52920; Z: - 1488)), // oren09_npc2118_01m1
-        (Loc: 'oren09_npc2118_01m1'; name: 'Moke'; NpcId: 30148; WhType: - 1; Pos: (X: 82840; Y: 53112; Z: - 1488)) // oren09_npc2118_01m1
-        );
+    { types
+      1 taurin (depP/withP/depC/withC)
+      2 valkon (depP/withP1/withP2/depC/withC1/withC2)
+      3 pochi (P/C -> dep/with)
+    }
 
-    {var wh_list: array [0..18, 0..1] of integer = (
-                    (30086, 1), (30103, 2), (30083, 3), (30095, 2), // giran
-                    (31311, 3), (31312, 3), (31313, 0), // rune
-                    (30844, 2), (30183, 2), (30232, 2), // aden oren hunter
-                    (30058, 2), (31267, 3), (31268, 3),           // dion gdd gludio
-                      (30255, 2), // gludio
-                    (30522, 2), // dwarven
-                    (31956, 3), // shutg
-                    (30896, 3), // heine
-                     (30139, 2), // DE
-                     (30153, 2) // elven}
+    WAREHOUSE: array[0..26] of TWarehouseData =
+        (
+        // Gludin
+        (Loc: 'Gludin'; name: 'Norman'; NpcId: 30210; WhType: 2; Pos: (X: - 81857; Y: 153545; Z: - 3171)), // gludio_npc1722_02001
+        // Gludio
+        (Loc: 'Gludio'; name: 'Haprock'; NpcId: 30255; WhType: 2; Pos: (X: - 13132; Y: 124988; Z: - 3118)), // gludio_npc1921_01901
+        // Dion
+        (Loc: 'Dion'; name: 'Holvas'; NpcId: 30058; WhType: 2; Pos: (X: 20750; Y: 144432; Z: - 3068)), // dion11_npc2022_0101
+        //Giran
+        (Loc: 'Giran'; name: 'Randolf'; NpcId: 30095; WhType: 2; Pos: (X: 82405; Y: 149905; Z: - 3520)), // giran11_npc2222_2801
+        (Loc: 'Giran'; name: 'Collob'; NpcId: 30092; WhType: 2; Pos: (X: 79248; Y: 149552; Z: - 3531)), // giran11_npc2222_2701
+        (Loc: 'Giran'; name: 'Taurin'; NpcId: 30086; WhType: 1; Pos: (X: 80752; Y: 146400; Z: - 3533)), // giran11_npc2222_2601
+        (Loc: 'Giran'; name: 'Pochi'; NpcId: 30083; WhType: 3; Pos: (X: 80329; Y: 145482; Z: - 3533)), // giran11_npc2222_2501
+        (Loc: 'Giran'; name: 'Valkon'; NpcId: 30103; WhType: 2; Pos: (X: 83264; Y: 146602; Z: - 3464)), // giran11_npc2222_0501
+        // heine
+        (Loc: 'Heine'; name: 'Mia'; NpcId: 30896; WhType: 3; Pos: (X: 109625; Y: 220238; Z: - 3520)), // innadril09_npc2324_0701
+        // Oren
+        (Loc: 'Oren'; name: 'Hagger'; NpcId: 30183; WhType: 2; Pos: (X: 81777; Y: 55123; Z: - 1508)), // oren17_npc2219_00901
+        // Hunter
+        (Loc: 'Hunter Village'; name: 'Sorint'; NpcId: 30232; WhType: 2; Pos: (X: 115271; Y: 76705; Z: - 2650)), // aden14_npc2320_10501
+        // Aden
+        (Loc: 'Aden'; name: 'Walderal'; NpcId: 30844; WhType: 2; Pos: (X: 148155; Y: 26254; Z: - 2217)), // aden13_npc2418_2401
+        // Goddard
+        (Loc: 'Goddard'; name: 'Lietta'; NpcId: 31267; WhType: 3; Pos: (X: 146440; Y: - 57500; Z: - 2965)), // godard02_npc2416_0401
+        (Loc: 'Goddard'; name: 'Hakon'; NpcId: 31268; WhType: 3; Pos: (X: 146412; Y: - 57484; Z: - 2965)), // godard02_npc2416_0401
+        // Rune
+        (Loc: 'Rune'; name: 'Hugin'; NpcId: 31311; WhType: 3; Pos: (X: 43556; Y: - 48592; Z: - 800)), // rune02_npc2116_0401
+        (Loc: 'Rune'; name: 'Durin'; NpcId: 31312; WhType: 3; Pos: (X: 43348; Y: - 48444; Z: - 800)), // rune02_npc2116_0401
+        (Loc: 'Rune'; name: 'Lunin'; NpcId: 31313; WhType: 3; Pos: (X: 43308; Y: - 48444; Z: - 800)), // rune02_npc2116_0401
+        // Schuttgart
+        (Loc: 'Schuttgart'; name: 'Rydel'; NpcId: 31956; WhType: 3; Pos: (X: 88616; Y: - 141220; Z: - 1525)), // schuttgart20_npc2213_17m1
+        (Loc: 'Schuttgart'; name: 'Cherbal'; NpcId: 31957; WhType: 3; Pos: (X: 88656; Y: - 141240; Z: - 1525)), // schuttgart20_npc2213_17m1
+
+        // DE
+        (Loc: 'Dark Elven'; name: 'Erviante'; NpcId: 30140; WhType: 2; Pos: (X: 13464; Y: 17751; Z: - 4541)), // oren09_npc2018_00401
+        (Loc: 'Dark Elven'; name: 'Dorankus'; NpcId: 30139; WhType: 2; Pos: (X: 13380; Y: 17430; Z: - 4542)), // oren09_npc2018_00401
+        // Elven
+        (Loc: 'Elven'; name: 'Markius'; NpcId: 30153; WhType: 2; Pos: (X: 47780; Y: 49568; Z: - 2983)), // oren04_npc2119_00201
+        (Loc: 'Elven'; name: 'Julia'; NpcId: 30152; WhType: 2; Pos: (X: 47912; Y: 50170; Z: - 2983)), // oren04_npc2119_00301
+        // Dwarven
+        (Loc: 'Dwarven'; name: 'Airy'; NpcId: 30522; WhType: 2; Pos: (X: 114832; Y: - 179520; Z: - 871)), // schuttgart_npc2312_02101
+        // TI
+        (Loc: 'Talking Island'; name: 'Wilford'; NpcId: 30005; WhType: 2; Pos: (X: - 81512; Y: 243424; Z: - 3720)), // gludio_npc1725_01101
+        (Loc: 'Talking Island'; name: 'Rolfe'; NpcId: 30055; WhType: 2; Pos: (X: - 81840; Y: 243534; Z: - 3721)), // gludio_npc1725_01101
+
+        // orc
+        (Loc: 'Orc'; name: 'Grookin'; NpcId: 30562; WhType: 2; Pos: (X: - 43109; Y: - 113770; Z: - 221)) // lyonn_npc1814_00301
+        );
 
     PRIESTS: array[0..21] of TPriestData = (//
         (Loc: 'Gludin'; NpcId: 31078; PriestType: 0; Pos: (X: - 80555; Y: 150387; Z: - 3040)),
@@ -467,7 +473,7 @@ begin
                         tmpStr := '+ ' + tmpStr
                     else
                         tmpStr := '- ' + tmpStr;
-                    FSteps[0].AssignMessage(tmpStr, msgWarehouse);
+                    FSteps[0].AssignMessage(tmpStr, msgWarehouse, $330033);
                 end;
 
             saWH_ItemPut:
@@ -497,7 +503,7 @@ begin
                     begin
                         // store list empty
                         SetLength(FSteps, 2);
-                        FSteps[0].AssignMessage('Nothing to store!', msgWarehouse);
+                        FSteps[0].AssignMessage('Nothing to store!', msgWarehouse, $11EE11);
                         FSteps[1].AssignInt(actStop);
 
                     end
@@ -507,7 +513,7 @@ begin
                         whNpcIndex := FindNearestWH(StartPoint);
 
                         SetLength(FSteps, 2);
-                        FSteps[0].AssignMessage(Format('NPC: %s, items: %d', [WAREHOUSE[whNpcIndex].Name, FInventory.Count]), msgWarehouse);
+                        FSteps[0].AssignMessage(Format('NPC: %s/%s, to store: %d', [WAREHOUSE[whNpcIndex].Loc, WAREHOUSE[whNpcIndex].Name, FInventory.Count]), msgWarehouse, $11EE11);
                         FSteps[1].AssignInt(actSitStand, 1);
 
                         if StartPoint.DistanceTo(WAREHOUSE[whNpcIndex].Pos) > 200 then
@@ -524,6 +530,7 @@ begin
                 begin
                     SetLength(FSteps, 2);
                     FSteps[0].AssignInt(actNpcSel, WAREHOUSE[whNpcIndex].NpcId);
+
                     FSteps[1].AssignInt(actNpcDlg);
                 end;
             saWH_OpenDlg:
@@ -554,7 +561,7 @@ begin
                                 FSteps[1].AssignInt(actDlgSel, 1);
                             end;
                     else
-                        raise EPathException.Create('Unknown warehouse type', msgWarehouse);
+                        raise EPathException.Create('Unknown warehouse type', msgWarehouse, $0000AA);
                     end;
 
                 end;
@@ -603,7 +610,7 @@ begin
 
                         SetLength(FSteps, 2);
                         FSteps[0].AssignInt(actSitStand, 1); // stand
-                        FSteps[1].AssignMessage(Format('%s from %s', [ssName, PRIESTS[ssPriestIndex].Loc]), msgSevenSigns, clGreen);
+                        FSteps[1].AssignMessage(Format('%s from %s', [ssName, PRIESTS[ssPriestIndex].Loc]), msgSevenSigns, $FF17E4);
                         if StartPoint.DistanceTo(PRIESTS[ssPriestIndex].Pos) > 200 then
                         begin
                             StartPointID := FindNearestPoint(StartPoint);
@@ -661,7 +668,7 @@ begin
                         FSteps[0].AssignInt(actDlgSel, 4);
                         FSteps[1].AssignInt(actDlgSel, GetRandomSealIndex(boolean(Params['cbSeal1']), boolean(Params['cbSeal2']), boolean(Params['cbSeal3']))); // Печать
                         FSteps[2].AssignInt(actDlgSel, 1);
-                        FSteps[3].AssignMessage('Registration done!', msgSevenSigns, clBlack);
+                        FSteps[3].AssignMessage('Registration done!', msgSevenSigns, $FF17E4);
                         FSteps[4].AssignInt(actStop);
                     end;
                 end;
@@ -669,15 +676,15 @@ begin
             sa7S_Already:
                 begin
                     SetLength(FSteps, 2);
-                    FSteps[0].AssignMessage('Already registered! Skipping...', msgSevenSigns, clBlack);
+                    FSteps[0].AssignMessage('Already registered! Skipping...', msgSevenSigns,  $FF17E4);
                     FSteps[1].AssignInt(actStop);
                 end;
 
             sa7S_Error:
                 begin
                     SetLength(FSteps, 3);
-                    FSteps[0].AssignMessage('Unknown dialog state!', msgSevenSigns, clRed);
-                    FSteps[1].AssignMessage(string(ansistring(FOutputBuffer)), msgSevenSigns, clRed);
+                    FSteps[0].AssignMessage('Unknown dialog state!',msgSevenSigns, clRed);
+                    FSteps[1].AssignMessage(StripHTML( string(ansistring(FOutputBuffer))), msgSevenSigns, $FF17E4);
                     FSteps[2].AssignInt(actStop);
                 end;
 
@@ -729,7 +736,9 @@ begin
             1: // Семь Печатей
                 FillScenario([sa7S_Init, sa7S_Init2, sa7S_GetDlg, sa7S_Analyze, sa7S_DoReg_Init, sa7S_DoReg, sa7S_Already, sa7S_Error]);
             2: // WH
-                FillScenario([saWH_Init_1, saWH_Init_2, saWH_ItemGet, saWH_ItemLog, saWH_ItemPut, saWH_Move,saWH_SelectNpc,saWH_OpenDlg,saWH_SendPacket]);
+                FillScenario([saWH_Init_1, saWH_Init_2, saWH_ItemGet,
+                    //saWH_ItemLog,
+                    saWH_ItemPut, saWH_Move, saWH_SelectNpc, saWH_OpenDlg, saWH_SendPacket]);
             3: // unstuck
                 FillScenario([saUnstuck]);
         end

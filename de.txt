@@ -1,7 +1,13 @@
 скрипт в папке адрика
 исходники на Е
 
+
+
 death penalty check
+MOVE MODE
+--------------------
+use payed 
+disable adrenaline (for stealth)
 export path (from current point to selected)
 
 

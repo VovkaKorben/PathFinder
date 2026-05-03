@@ -36,7 +36,7 @@ const
     actCBTextToDLL = 60;
     //    actStrToDLL = 70;
     actStrFromDLL = 80;
-    actMessageFromDLL = 80;
+    actMessageFromDLL = 85;
     actIntToDLL = 90;
     actSitStand = 100; // from DLL: p1 mode(0-1), 1 = stand
     actFaceControl = 110; // from DLL: p1 mode(0-4), p2 state(0-1)

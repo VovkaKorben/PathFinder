@@ -1,0 +1,8 @@
+wh/
+.vscode/
+*.dcu
+*.dsk
+*.png
+*.~*
+*.dres
+*.log
